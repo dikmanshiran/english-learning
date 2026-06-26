@@ -493,6 +493,7 @@ let answered = false;
 let allItems = [];
 let wrongAnswers = [];
 let currentQuestion = null;
+let resetting = false;
 
 // ─────────────────────────────────────────────────────────
 //  UI HELPERS
@@ -719,6 +720,7 @@ function renderQuestion() {
   const q = questions[currentQ];
   currentQuestion = q;
   answered = false;
+  resetting = false;
 
   // progress
   const pct = (currentQ / questions.length) * 100;
@@ -787,6 +789,7 @@ function triggerSpeak() {
 }
 
 function answer(chosen, correct) {
+  if (answered || resetting) return;
   const isCorrect = chosen === correct;
   const btns = document.querySelectorAll('.opt-btn');
   const fb = $('feedback');
@@ -820,6 +823,7 @@ function answer(chosen, correct) {
       wrongAnswers.push({ q: currentQuestion, chosen, correct });
     }
     // briefly flash the wrong button red, then reset all to normal
+    resetting = true;
     btns.forEach(b => {
       if (b.textContent === chosen) b.classList.add('wrong');
     });
@@ -830,6 +834,7 @@ function answer(chosen, correct) {
       $('question-card').classList.remove('shake');
       btns.forEach(b => b.classList.remove('wrong'));
       fb.className = 'feedback';
+      resetting = false;
     }, 800);
     playTone(false);
 

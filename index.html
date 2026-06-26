@@ -819,14 +819,18 @@ function answer(chosen, correct) {
       $('hearts').textContent = '❤️'.repeat(Math.max(0,lives)) + '🖤'.repeat(3 - Math.max(0,lives));
       wrongAnswers.push({ q: currentQuestion, chosen, correct });
     }
-    // disable only the wrong button, let the rest stay active
+    // briefly flash the wrong button red, then reset all to normal
     btns.forEach(b => {
-      if (b.textContent === chosen) b.classList.add('wrong', 'disabled');
+      if (b.textContent === chosen) b.classList.add('wrong');
     });
     fb.className = 'feedback wrong show';
     fb.textContent = '❌ Not quite — try again!';
     $('question-card').classList.add('shake');
-    setTimeout(() => $('question-card').classList.remove('shake'), 500);
+    setTimeout(() => {
+      $('question-card').classList.remove('shake');
+      btns.forEach(b => b.classList.remove('wrong'));
+      fb.className = 'feedback';
+    }, 800);
     playTone(false);
 
     // if no lives left, end game

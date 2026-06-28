@@ -210,17 +210,95 @@
     font-size: .75rem; font-weight: 700; text-transform: uppercase;
     letter-spacing: 1px; color: var(--text-dim); margin-bottom: 4px;
   }
+
+  /* ── PROFILE SCREEN ── */
+  .profile-hero { text-align: center; padding: 28px 0 8px; }
+  .profile-hero h1 { font-size: 2rem; font-weight: 900; background: linear-gradient(90deg,#a78bfa,#f59e0b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .profile-hero p { color: var(--text-dim); margin-top: 6px; }
+  .players-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .player-card {
+    background: var(--card); border: 2px solid var(--card2);
+    border-radius: 18px; padding: 16px 8px; text-align: center;
+    cursor: pointer; transition: all .2s;
+  }
+  .player-card:hover { border-color: var(--primary-light); transform: translateY(-2px); }
+  .player-avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; margin: 0 auto 8px; font-weight: 900;
+  }
+  .player-name { font-size: .85rem; font-weight: 700; color: var(--text); }
+  .player-stats { font-size: .7rem; color: var(--text-dim); margin-top: 2px; }
+  .add-player-btn {
+    background: var(--card); border: 2px dashed var(--card2);
+    border-radius: 18px; padding: 16px 8px; text-align: center;
+    cursor: pointer; transition: all .2s; color: var(--text-dim);
+    font-size: .85rem; font-weight: 600;
+  }
+  .add-player-btn:hover { border-color: var(--primary-light); color: var(--text); }
+  .add-player-btn .plus { font-size: 2rem; display: block; margin-bottom: 4px; }
+
+  /* ── NEW USER FORM ── */
+  .form-card { background: var(--card); border-radius: 20px; padding: 28px 20px; border: 2px solid var(--card2); }
+  .form-card h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: 6px; }
+  .form-card p { color: var(--text-dim); font-size: .9rem; margin-bottom: 20px; }
+  .avatar-picker { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px; }
+  .avatar-opt {
+    font-size: 1.6rem; text-align: center; padding: 8px 4px;
+    border-radius: 12px; cursor: pointer; border: 2px solid transparent;
+    transition: all .15s; background: var(--card2);
+  }
+  .avatar-opt.selected { border-color: var(--primary-light); background: rgba(108,63,197,.3); }
+  .name-input {
+    width: 100%; background: var(--card2); border: 2px solid var(--card2);
+    border-radius: 12px; padding: 14px 16px; font-size: 1rem;
+    color: var(--text); outline: none; margin-bottom: 16px;
+    transition: border-color .2s;
+  }
+  .name-input:focus { border-color: var(--primary-light); }
+  .name-input::placeholder { color: var(--text-dim); }
+  .form-btns { display: flex; gap: 10px; }
+  .form-btn { flex: 1; padding: 14px; border-radius: 14px; font-size: .95rem; font-weight: 700; cursor: pointer; border: none; transition: all .2s; }
+  .form-btn.primary { background: var(--primary); color: white; }
+  .form-btn.ghost { background: var(--card2); color: var(--text-dim); }
+
+  /* ── USER BADGE IN GAME ── */
+  .user-badge { font-size: .8rem; color: var(--text-dim); font-weight: 600; }
 </style>
 </head>
 <body>
 <div id="app">
   <div id="confetti-container" class="confetti-container"></div>
 
+  <!-- PROFILE SCREEN -->
+  <div id="profile-screen" class="screen">
+    <div class="profile-hero">
+      <h1>English Adventure 🚀</h1>
+      <p>Who's playing today?</p>
+    </div>
+    <div class="players-grid" id="players-grid"></div>
+  </div>
+
+  <!-- NEW USER SCREEN -->
+  <div id="new-user-screen" class="screen">
+    <div class="form-card">
+      <h2>👤 New Player</h2>
+      <p>Pick an avatar and enter your name</p>
+      <div class="avatar-picker" id="avatar-picker"></div>
+      <input class="name-input" id="new-name-input" type="text" placeholder="Your name..." maxlength="20" />
+      <div class="form-btns">
+        <button class="form-btn ghost" onclick="show('profile-screen')">← Back</button>
+        <button class="form-btn primary" onclick="createUser()">Let's go! 🚀</button>
+      </div>
+    </div>
+  </div>
+
   <!-- HOME SCREEN -->
   <div id="home-screen" class="screen active">
     <div class="hero">
       <h1>English Adventure 🚀</h1>
-      <p>Learn English words the fun way!</p>
+      <p id="home-greeting">Learn English words the fun way!</p>
+      <button class="back-btn" style="margin-top:10px" onclick="show('profile-screen')">🔄 Switch Player</button>
     </div>
 
     <div class="section-title">Choose units to practice</div>
@@ -263,7 +341,10 @@
   <!-- GAME SCREEN -->
   <div id="game-screen" class="screen">
     <div class="game-header">
-      <button class="back-btn" onclick="goHome()">← Home</button>
+      <div>
+        <button class="back-btn" onclick="goHome()">← Home</button>
+        <div class="user-badge" id="game-user-badge"></div>
+      </div>
       <div class="score-display">
         <span class="stars-count">⭐ <span id="score">0</span></span>
         <span class="hearts" id="hearts">❤️❤️❤️</span>
@@ -305,6 +386,117 @@
 </div>
 
 <script>
+// ─────────────────────────────────────────────────────────
+//  USER / PERSISTENCE
+// ─────────────────────────────────────────────────────────
+const AVATARS = ['🦁','🐯','🐧','🦊','🐸','🐼','🦄','🐙','🦋','🦕'];
+const AVATAR_COLORS = ['#6c3fc5','#e05252','#2a9d8f','#e76f51','#457b9d','#e9c46a','#8338ec','#06d6a0','#fb5607','#3a86ff'];
+
+let currentUser = null;
+
+function loadUsers() {
+  try { return JSON.parse(localStorage.getItem('ea_users') || '{}'); } catch { return {}; }
+}
+function saveUsers(users) {
+  localStorage.setItem('ea_users', JSON.stringify(users));
+}
+
+function renderProfileScreen() {
+  const users = loadUsers();
+  const grid = document.getElementById('players-grid');
+  grid.innerHTML = '';
+
+  Object.values(users).forEach(u => {
+    const totalGames = u.totalGames || 0;
+    const totalStars = u.totalStars || 0;
+    const div = document.createElement('div');
+    div.className = 'player-card';
+    div.innerHTML = `
+      <div class="player-avatar" style="background:${u.color}">${u.avatar}</div>
+      <div class="player-name">${u.name}</div>
+      <div class="player-stats">${totalGames} games · ⭐${totalStars}</div>`;
+    div.onclick = () => selectUser(u.name);
+    grid.appendChild(div);
+  });
+
+  // Add new player button
+  const add = document.createElement('div');
+  add.className = 'add-player-btn';
+  add.innerHTML = `<span class="plus">➕</span>New Player`;
+  add.onclick = () => showNewUserForm();
+  grid.appendChild(add);
+}
+
+function showNewUserForm() {
+  // render avatar picker
+  const picker = document.getElementById('avatar-picker');
+  picker.innerHTML = '';
+  let selectedAvatar = AVATARS[0];
+  AVATARS.forEach((a, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'avatar-opt' + (i === 0 ? ' selected' : '');
+    btn.textContent = a;
+    btn.onclick = () => {
+      picker.querySelectorAll('.avatar-opt').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedAvatar = a;
+    };
+    picker.appendChild(btn);
+  });
+  document.getElementById('new-name-input').value = '';
+  // store selected avatar in closure via data attr
+  picker.dataset.selected = AVATARS[0];
+  picker.addEventListener('click', () => {
+    const sel = picker.querySelector('.avatar-opt.selected');
+    if (sel) picker.dataset.selected = sel.textContent;
+  });
+  show('new-user-screen');
+}
+
+function createUser() {
+  const name = document.getElementById('new-name-input').value.trim();
+  if (!name) { document.getElementById('new-name-input').focus(); return; }
+  const picker = document.getElementById('avatar-picker');
+  const avatar = (picker.querySelector('.avatar-opt.selected') || { textContent: AVATARS[0] }).textContent;
+  const colorIdx = AVATARS.indexOf(avatar);
+  const color = AVATAR_COLORS[colorIdx >= 0 ? colorIdx : 0];
+  const users = loadUsers();
+  if (!users[name]) {
+    users[name] = { name, avatar, color, totalGames: 0, totalStars: 0, stats: {} };
+    saveUsers(users);
+  }
+  selectUser(name);
+}
+
+function selectUser(name) {
+  const users = loadUsers();
+  currentUser = users[name];
+  document.getElementById('home-greeting').textContent = `Welcome back, ${name}! 👋`;
+  document.getElementById('game-user-badge').textContent = `${currentUser.avatar} ${currentUser.name}`;
+  show('home-screen');
+}
+
+function saveGameStats(questionsPlayed, starsEarned) {
+  if (!currentUser) return;
+  const users = loadUsers();
+  const u = users[currentUser.name];
+  if (!u) return;
+  u.totalGames = (u.totalGames || 0) + 1;
+  u.totalStars  = (u.totalStars  || 0) + starsEarned;
+  if (!u.stats) u.stats = {};
+
+  questionsPlayed.forEach(({ q, firstTryCorrect }) => {
+    const key = q.question; // English text as key
+    if (!u.stats[key]) u.stats[key] = { correct: 0, wrong: 0, lastSeen: 0 };
+    if (firstTryCorrect) u.stats[key].correct++;
+    else                 u.stats[key].wrong++;
+    u.stats[key].lastSeen = Date.now();
+  });
+
+  saveUsers(users);
+  currentUser = u; // refresh local copy
+}
+
 // ─────────────────────────────────────────────────────────
 //  DATA
 // ─────────────────────────────────────────────────────────
@@ -494,6 +686,7 @@ let allItems = [];
 let wrongAnswers = [];
 let currentQuestion = null;
 let resetting = false;
+let questionLog = []; // { q, firstTryCorrect }
 
 // ─────────────────────────────────────────────────────────
 //  UI HELPERS
@@ -501,6 +694,7 @@ let resetting = false;
 function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  if (id === 'profile-screen') renderProfileScreen();
 }
 function $(id) { return document.getElementById(id); }
 
@@ -711,7 +905,7 @@ function startGame() {
     alert('No questions available for selected units. Please select more units!');
     return;
   }
-  currentQ = 0; score = 0; lives = 3; streak = 0; wrongAnswers = [];
+  currentQ = 0; score = 0; lives = 3; streak = 0; wrongAnswers = []; questionLog = [];
   show('game-screen');
   renderQuestion();
 }
@@ -796,6 +990,8 @@ function answer(chosen, correct) {
 
   if (isCorrect) {
     answered = true;
+    const firstTry = !currentQuestion._wrongLogged;
+    questionLog.push({ q: currentQuestion, firstTryCorrect: firstTry });
     // mark correct button green, disable all
     btns.forEach(b => {
       b.classList.add('disabled');
@@ -875,6 +1071,8 @@ function showResults() {
     ? `You ran out of hearts after ${currentQ} questions.`
     : `You scored ${score} points on ${total} questions!`;
 
+  saveGameStats(questionLog, [...stars].filter(c => c === '⭐').length);
+
   const reviewEl = $('review-section');
   if (wrongAnswers.length === 0) {
     reviewEl.innerHTML = '<div class="review-title" style="color:#6ee7b7">🎯 Perfect — no mistakes!</div>';
@@ -933,7 +1131,7 @@ function playTone(correct) {
 // ─────────────────────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────────────────────
-show('home-screen');
+show('profile-screen');
 
 // ─────────────────────────────────────────────────────────
 //  CONFETTI

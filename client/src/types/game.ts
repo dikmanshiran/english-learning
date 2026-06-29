@@ -1,0 +1,80 @@
+export type QuestionKind = 'e2h' | 'h2e' | 'sentence' | 'listen';
+export type MasteryLevel = 'UNSEEN' | 'STRUGGLING' | 'LEARNING' | 'MASTERED';
+
+export interface VocabItem {
+  e: string;
+  h: string;
+  u: number;
+}
+
+export interface PhraseItem {
+  e: string;
+  h: string;
+  u: number;
+}
+
+export interface SentenceItem {
+  s: string;
+  a: string;
+  opts: string[];
+  u: number;
+}
+
+export interface ListenItem {
+  e: string;
+  h: string;
+  u: number;
+}
+
+export interface Question {
+  kind: QuestionKind;
+  question: string;
+  answer: string;
+  options: string[];
+  hintText: string;
+  _wrongLogged?: boolean;
+}
+
+export interface WrongAnswer {
+  q: Question;
+  chosen: string;
+  correct: string;
+}
+
+export interface QuestionLogEntry {
+  q: Question;
+  firstTryCorrect: boolean;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  avatar: string;
+  color: string;
+  totalGames: number;
+  totalStars: number;
+  stats: Record<string, { correct: number; wrong: number; lastSeen: number }>;
+  // server sync
+  serverId?: string;
+  parentId?: string;
+}
+
+export interface Unit {
+  id: number;
+  name: string;
+  icon: string;
+}
+
+export const AVATARS = ['🦁', '🐯', '🐧', '🦊', '🐸', '🐼', '🦄', '🐙', '🦋', '🦕'];
+export const AVATAR_COLORS = [
+  '#6c3fc5', '#e05252', '#2a9d8f', '#e76f51', '#457b9d',
+  '#e9c46a', '#8338ec', '#06d6a0', '#fb5607', '#3a86ff',
+];
+
+export const UNITS: Unit[] = [
+  { id: 1, name: 'At School', icon: '🏫' },
+  { id: 2, name: "Let's Play", icon: '⚽' },
+  { id: 3, name: 'Animals', icon: '🐘' },
+  { id: 4, name: 'Be Careful!', icon: '⚠️' },
+  { id: 5, name: 'Work Together', icon: '🤝' },
+];

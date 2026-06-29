@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum QuestionKind {
+  E2H
+  H2E
+  SENTENCE
+  LISTEN
+}
+
+enum MasteryLevel {
+  UNSEEN
+  STRUGGLING
+  LEARNING
+  MASTERED
+}
+
+model Parent {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  passwordHash String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  profiles     ChildProfile[]
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  parentId  String
+  parent    Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model ChildProfile {
+  id         String        @id @default(cuid())
+  parentId   String?
+  parent     Parent?       @relation(fields: [parentId], references: [id], onDelete: SetNull)
+  name       String
+  avatar     String        @default("🦁")
+  color      String        @default("#6c3fc5")
+  totalGames Int           @default(0)
+  totalStars Int           @default(0)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  sessions   GameSession[]
+  wordStats  WordStat[]
+}
+
+model Unit {
+  id         Int           @id
+  name       String
+  icon       String
+  vocabItems VocabItem[]
+  phraseItems PhraseItem[]
+  sentenceItems SentenceItem[]
+  listenItems  ListenItem[]
+}
+
+model VocabItem {
+  id     String @id @default(cuid())
+  unitId Int
+  unit   Unit   @relation(fields: [unitId], references: [id])
+  english String
+  hebrew  String
+}
+
+model PhraseItem {
+  id     String @id @default(cuid())
+  unitId Int
+  unit   Unit   @relation(fields: [unitId], references: [id])
+  english String
+  hebrew  String
+}
+
+model SentenceItem {
+  id       String   @id @default(cuid())
+  unitId   Int
+  unit     Unit     @relation(fields: [unitId], references: [id])
+  sentence String
+  answer   String
+  options  String[]
+}
+
+model ListenItem {
+  id      String @id @default(cuid())
+  unitId  Int
+  unit    Unit   @relation(fields: [unitId], references: [id])
+  english String
+  hebrew  String
+}
+
+model GameSession {
+  id          String            @id @default(cuid())
+  profileId   String
+  profile     ChildProfile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  units       Int[]
+  questionCount Int
+  score       Int               @default(0)
+  stars       Int               @default(0)
+  livesLeft   Int               @default(3)
+  completedAt DateTime          @default(now())
+  questions   SessionQuestion[]
+}
+
+model SessionQuestion {
+  id           String       @id @default(cuid())
+  sessionId    String
+  session      GameSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  kind         QuestionKind
+  questionText String
+  answer       String
+  chosen       String
+  correct      Boolean
+  firstTry     Boolean
+}
+
+model WordStat {
+  id        String       @id @default(cuid())
+  profileId String
+  profile   ChildProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  wordKey   String
+  correct   Int          @default(0)
+  wrong     Int          @default(0)
+  mastery   MasteryLevel @default(UNSEEN)
+  lastSeen  DateTime?
+
+  @@unique([profileId, wordKey])
+}

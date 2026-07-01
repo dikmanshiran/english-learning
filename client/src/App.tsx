@@ -1,20 +1,25 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Confetti } from './components/Confetti';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { NewUserScreen } from './screens/NewUserScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { GameScreen } from './screens/GameScreen';
 import { ResultsScreen } from './screens/ResultsScreen';
+import { LoginScreen } from './screens/LoginScreen';
+import { RegisterScreen } from './screens/RegisterScreen';
 import { useGameStore } from './store/gameStore';
 import { useProfileStore } from './store/profileStore';
+import { useAuthStore } from './store/authStore';
 import { useBuildQuestions } from './hooks/useGame';
 import { useQuestionPool } from './hooks/useQuestionPool';
+import { refreshToken, logout } from './services/authService';
 
-type Screen = 'profile' | 'newUser' | 'home' | 'game' | 'results';
+type Screen = 'landing' | 'login' | 'register' | 'profile' | 'newUser' | 'home' | 'game' | 'results';
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('profile');
+  const [screen, setScreen] = useState<Screen>('landing');
   const [confettiTrigger, setConfettiTrigger] = useState(0);
+  const { isLoggedIn, email, clearAuth } = useAuthStore();
 
   const { selectedUnits, questionCount, setQuestions, resetGame } = useGameStore();
   const { selectProfile, updateProfileStats, currentProfile } = useProfileStore();
@@ -22,6 +27,18 @@ export default function App() {
   const pool = useQuestionPool(selectedUnits);
 
   const fireConfetti = useCallback(() => setConfettiTrigger((n) => n + 1), []);
+
+  // On mount: try silent token refresh so logged-in users skip the landing screen
+  useEffect(() => {
+    refreshToken().then((ok) => {
+      setScreen(ok ? 'profile' : 'landing');
+    });
+  }, []);
+
+  async function handleLogout() {
+    try { await logout(); } catch { clearAuth(); }
+    setScreen('landing');
+  }
 
   function handleSelectProfile(id: string) {
     selectProfile(id);
@@ -75,10 +92,49 @@ export default function App() {
     <div id="app">
       <Confetti trigger={confettiTrigger} />
 
+      {screen === 'landing' && (
+        <div className="screen active">
+          <div className="profile-hero">
+            <h1>English Adventure 🚀</h1>
+            <p>Learn English, one word at a time!</p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '340px', margin: '0 auto', padding: '0 20px' }}>
+            <button className="form-btn primary" style={{ fontSize: '1.1rem', padding: '16px' }} onClick={() => setScreen('login')}>
+              🔐 Login
+            </button>
+            <button className="form-btn ghost" style={{ fontSize: '1.1rem', padding: '16px' }} onClick={() => setScreen('register')}>
+              📝 Create Account
+            </button>
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: '.85rem', margin: '4px 0' }}>— or —</div>
+            <button className="form-btn ghost" style={{ fontSize: '1rem', padding: '14px' }} onClick={() => setScreen('profile')}>
+              👤 Play as Guest
+            </button>
+          </div>
+        </div>
+      )}
+
+      {screen === 'login' && (
+        <LoginScreen
+          onSuccess={() => setScreen('profile')}
+          onBack={() => setScreen('landing')}
+          onRegister={() => setScreen('register')}
+        />
+      )}
+
+      {screen === 'register' && (
+        <RegisterScreen
+          onSuccess={() => setScreen('profile')}
+          onBack={() => setScreen('landing')}
+        />
+      )}
+
       {screen === 'profile' && (
         <ProfileScreen
           onSelectProfile={handleSelectProfile}
           onNewPlayer={() => setScreen('newUser')}
+          isLoggedIn={isLoggedIn}
+          email={email}
+          onLogout={handleLogout}
         />
       )}
 

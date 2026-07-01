@@ -126,12 +126,42 @@ export function playTone(correct: boolean) {
 }
 
 // TTS
+const PREFERRED_VOICE_NAMES = [
+  'Samantha',        // macOS/iOS – clear American accent
+  'Google US English', // Chrome on Android/desktop
+  'Microsoft Zira',  // Windows
+  'Karen',           // macOS Australian – very clear
+];
+
+function pickVoice(): SpeechSynthesisVoice | null {
+  const voices = speechSynthesis.getVoices();
+  for (const name of PREFERRED_VOICE_NAMES) {
+    const v = voices.find(v => v.name === name);
+    if (v) return v;
+  }
+  // fallback: any en-US voice
+  return voices.find(v => v.lang === 'en-US') ?? null;
+}
+
 export function speak(text: string, onEnd?: () => void) {
   if (!window.speechSynthesis) return;
   speechSynthesis.cancel();
   const utt = new SpeechSynthesisUtterance(text);
   utt.lang = 'en-US';
-  utt.rate = 0.85;
+  utt.rate = 0.7;
+  utt.pitch = 1.0;
+  const voice = pickVoice();
+  if (voice) utt.voice = voice;
   if (onEnd) utt.onend = onEnd;
-  speechSynthesis.speak(utt);
+  // voices may load async on first call
+  if (speechSynthesis.getVoices().length === 0) {
+    speechSynthesis.onvoiceschanged = () => {
+      speechSynthesis.onvoiceschanged = null;
+      const v = pickVoice();
+      if (v) utt.voice = v;
+      speechSynthesis.speak(utt);
+    };
+  } else {
+    speechSynthesis.speak(utt);
+  }
 }

@@ -148,7 +148,7 @@ export function speak(text: string, onEnd?: () => void) {
   speechSynthesis.cancel();
   const utt = new SpeechSynthesisUtterance(text);
   utt.lang = 'en-US';
-  utt.rate = 0.7;
+  utt.rate = 0.6;
   utt.pitch = 1.0;
   const voice = pickVoice();
   if (voice) utt.voice = voice;

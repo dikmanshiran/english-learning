@@ -2,6 +2,14 @@ import { create } from 'zustand';
 import { UserProfile, AVATARS, AVATAR_COLORS } from '../types/game';
 import { v4 as uuidv4 } from 'uuid';
 import * as profilesService from '../services/profilesService';
+import { getWordStats } from '../services/statsService';
+
+export interface WordStat {
+  wordKey: string;
+  correct: number;
+  wrong: number;
+  mastery: 'UNSEEN' | 'STRUGGLING' | 'LEARNING' | 'MASTERED';
+}
 
 function loadLocalProfiles(): Record<string, UserProfile> {
   try {
@@ -15,15 +23,29 @@ function saveLocalProfiles(profiles: Record<string, UserProfile>) {
   localStorage.setItem('ea_users', JSON.stringify(profiles));
 }
 
+// Derive word stats from local profile stats (guest mode)
+function deriveLocalWordStats(profile: UserProfile): WordStat[] {
+  return Object.entries(profile.stats || {}).map(([wordKey, s]) => {
+    const total = s.correct + s.wrong;
+    const accuracy = total > 0 ? s.correct / total : 0;
+    const mastery = total === 0 ? 'UNSEEN'
+      : accuracy < 0.3 ? 'STRUGGLING'
+      : accuracy < 0.7 ? 'LEARNING'
+      : 'MASTERED';
+    return { wordKey, correct: s.correct, wrong: s.wrong, mastery };
+  });
+}
+
 interface ProfileState {
   profiles: Record<string, UserProfile>;
   currentProfile: UserProfile | null;
-  isServerBacked: boolean; // true when logged in and using server profiles
+  isServerBacked: boolean;
+  // wordKey → stat, for the currently selected profile
+  wordStats: Record<string, WordStat>;
 
-  // Load profiles from server (when logged in)
   loadServerProfiles: () => Promise<void>;
-  // Load profiles from localStorage (guest mode)
   loadLocalProfiles: () => void;
+  loadWordStats: (profileId: string) => Promise<void>;
 
   createProfile: (name: string, avatar: string, color: string) => Promise<UserProfile>;
   selectProfile: (id: string) => void;
@@ -40,6 +62,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   profiles: loadLocalProfiles(),
   currentProfile: null,
   isServerBacked: false,
+  wordStats: {},
 
   loadServerProfiles: async () => {
     const serverProfiles = await profilesService.fetchProfiles();
@@ -51,7 +74,29 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   },
 
   loadLocalProfiles: () => {
-    set({ profiles: loadLocalProfiles(), isServerBacked: false });
+    set({ profiles: loadLocalProfiles(), isServerBacked: false, wordStats: {} });
+  },
+
+  loadWordStats: async (profileId: string) => {
+    const { isServerBacked, profiles } = get();
+    if (isServerBacked) {
+      try {
+        const stats: WordStat[] = await getWordStats(profileId);
+        const wordStats: Record<string, WordStat> = {};
+        for (const s of stats) wordStats[s.wordKey] = s;
+        set({ wordStats });
+      } catch {
+        // non-fatal
+      }
+    } else {
+      const profile = profiles[profileId];
+      if (profile) {
+        const stats = deriveLocalWordStats(profile);
+        const wordStats: Record<string, WordStat> = {};
+        for (const s of stats) wordStats[s.wordKey] = s;
+        set({ wordStats });
+      }
+    }
   },
 
   createProfile: async (name: string, avatar: string, color: string): Promise<UserProfile> => {
@@ -89,7 +134,6 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     profile.totalGames = (profile.totalGames || 0) + 1;
     profile.totalStars = (profile.totalStars || 0) + starsEarned;
 
-    // Only persist stats locally in guest mode (server tracks them in DB when logged in)
     if (!isServerBacked) {
       if (!profile.stats) profile.stats = {};
       for (const { questionText, firstTryCorrect } of questionLog) {
@@ -101,15 +145,28 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         profile.stats[questionText].lastSeen = Date.now();
       }
       saveLocalProfiles(profiles);
+
+      // Update in-memory wordStats too
+      const wordStats = { ...get().wordStats };
+      for (const { questionText, firstTryCorrect } of questionLog) {
+        const existing = wordStats[questionText] || { wordKey: questionText, correct: 0, wrong: 0, mastery: 'UNSEEN' as const };
+        const correct = existing.correct + (firstTryCorrect ? 1 : 0);
+        const wrong = existing.wrong + (firstTryCorrect ? 0 : 1);
+        const total = correct + wrong;
+        const accuracy = total > 0 ? correct / total : 0;
+        const mastery = accuracy < 0.3 ? 'STRUGGLING' : accuracy < 0.7 ? 'LEARNING' : 'MASTERED';
+        wordStats[questionText] = { wordKey: questionText, correct, wrong, mastery };
+      }
+      set({ wordStats });
     }
 
     set({ profiles, currentProfile: profile });
   },
 
-  clearCurrentProfile: () => set({ currentProfile: null }),
+  clearCurrentProfile: () => set({ currentProfile: null, wordStats: {} }),
 
   clearProfiles: () => {
-    set({ profiles: {}, currentProfile: null, isServerBacked: false });
+    set({ profiles: {}, currentProfile: null, isServerBacked: false, wordStats: {} });
   },
 }));
 

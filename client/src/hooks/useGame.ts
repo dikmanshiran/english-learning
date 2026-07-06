@@ -1,9 +1,47 @@
 import { useCallback } from 'react';
 import { Question, VocabItem, PhraseItem, SentenceItem, ListenItem } from '../types/game';
 import { VOCAB, PHRASES, LISTEN_SENTENCES } from '../data/content';
+import { WordStat } from '../store/profileStore';
 
 function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
+}
+
+// Returns a weight multiplier based on past performance
+function getWeight(questionKey: string, wordStats: Record<string, WordStat>): number {
+  const stat = wordStats[questionKey];
+  if (!stat || stat.mastery === 'UNSEEN') return 1.0;
+  if (stat.mastery === 'STRUGGLING') return 4.0;
+  if (stat.mastery === 'LEARNING') return 2.0;
+  return 0.5; // MASTERED — still show occasionally
+}
+
+// Weighted random sample of `count` items from `arr`
+function weightedSample<T>(
+  arr: T[],
+  count: number,
+  getKey: (item: T) => string,
+  wordStats: Record<string, WordStat>
+): T[] {
+  if (arr.length === 0) return [];
+  const weights = arr.map((item) => getWeight(getKey(item), wordStats));
+  const result: T[] = [];
+  const available = [...arr];
+  const availableWeights = [...weights];
+
+  for (let i = 0; i < Math.min(count, arr.length); i++) {
+    const total = availableWeights.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    let idx = 0;
+    for (let j = 0; j < availableWeights.length; j++) {
+      r -= availableWeights[j];
+      if (r <= 0) { idx = j; break; }
+    }
+    result.push(available[idx]);
+    available.splice(idx, 1);
+    availableWeights.splice(idx, 1);
+  }
+  return result;
 }
 
 function makeVocabQ(item: VocabItem, type: 'e2h' | 'h2e'): Question {
@@ -62,7 +100,12 @@ interface Pool {
 }
 
 export function useBuildQuestions() {
-  return useCallback((pool: Pool, questionCount: number, selectedUnits: Array<number | 'all'>): Question[] => {
+  return useCallback((
+    pool: Pool,
+    questionCount: number,
+    selectedUnits: Array<number | 'all'>,
+    wordStats: Record<string, WordStat> = {}
+  ): Question[] => {
     const qs: Question[] = [];
     const n = questionCount;
     const nSentence = Math.round(n * 0.15);
@@ -74,18 +117,21 @@ export function useBuildQuestions() {
     const nPhraseE2H = Math.round(nPhrase * 0.5);
     const nPhraseH2E = nPhrase - nPhraseE2H;
 
-    const vocabItems = shuffle(pool.vocab);
+    // Vocab — weighted by e2h question key (english word)
+    const vocabItems = weightedSample(pool.vocab, nE2H + nH2E, (v) => v.e, wordStats);
     vocabItems.slice(0, nE2H).forEach((v) => qs.push(makeVocabQ(v, 'e2h')));
-    vocabItems.slice(nE2H, nE2H + nH2E).forEach((v) => qs.push(makeVocabQ(v, 'h2e')));
+    vocabItems.slice(nE2H).forEach((v) => qs.push(makeVocabQ(v, 'h2e')));
 
-    const phraseItems = shuffle(pool.phrases);
+    // Phrases — weighted by english phrase
+    const phraseItems = weightedSample(pool.phrases, nPhraseE2H + nPhraseH2E, (p) => p.e, wordStats);
     phraseItems.slice(0, nPhraseE2H).forEach((p) => qs.push(makePhraseQ(p, 'e2h')));
-    phraseItems.slice(nPhraseE2H, nPhraseE2H + nPhraseH2E).forEach((p) => qs.push(makePhraseQ(p, 'h2e')));
+    phraseItems.slice(nPhraseE2H).forEach((p) => qs.push(makePhraseQ(p, 'h2e')));
 
-    const sentItems = shuffle(pool.sentences);
-    sentItems.slice(0, nSentence).forEach((s) => qs.push(makeSentenceQ(s)));
+    // Sentences — weighted by answer word
+    const sentItems = weightedSample(pool.sentences, nSentence, (s) => s.a, wordStats);
+    sentItems.forEach((s) => qs.push(makeSentenceQ(s)));
 
-    // listen: half sentences, half words/phrases
+    // Listen — weighted by english text
     const listenSents = selectedUnits.includes('all')
       ? LISTEN_SENTENCES
       : LISTEN_SENTENCES.filter((s) =>
@@ -93,8 +139,8 @@ export function useBuildQuestions() {
         );
     const nListenSents = Math.max(1, Math.floor(nListen / 2));
     const nListenWords = nListen - nListenSents;
-    shuffle(listenSents).slice(0, nListenSents).forEach((item) => qs.push(makeListenQ(item)));
-    shuffle([...pool.vocab, ...pool.phrases]).slice(0, nListenWords).forEach((item) => qs.push(makeListenQ(item)));
+    weightedSample(listenSents, nListenSents, (s) => s.e, wordStats).forEach((item) => qs.push(makeListenQ(item)));
+    weightedSample([...pool.vocab, ...pool.phrases], nListenWords, (v) => v.e, wordStats).forEach((item) => qs.push(makeListenQ(item)));
 
     return shuffle(qs).slice(0, n);
   }, []);

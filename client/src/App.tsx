@@ -25,7 +25,7 @@ export default function App() {
   const { isLoggedIn, clearAuth } = useAuthStore();
 
   const { selectedUnits, questionCount, setQuestions, resetGame } = useGameStore();
-  const { selectProfile, updateProfileStats, currentProfile, loadServerProfiles, loadLocalProfiles, clearProfiles, isServerBacked } = useProfileStore();
+  const { selectProfile, updateProfileStats, currentProfile, loadServerProfiles, loadLocalProfiles, loadWordStats, clearProfiles, isServerBacked, wordStats } = useProfileStore();
   const buildQuestions = useBuildQuestions();
   const pool = useQuestionPool(selectedUnits);
 
@@ -57,11 +57,12 @@ export default function App() {
 
   function handleSelectProfile(id: string) {
     selectProfile(id);
+    loadWordStats(id); // load adaptive weights for this child
     setScreen('home');
   }
 
   function handleStart() {
-    const qs = buildQuestions(pool, questionCount, selectedUnits);
+    const qs = buildQuestions(pool, questionCount, selectedUnits, wordStats);
     if (qs.length === 0) {
       alert('אין שאלות ליחידות שנבחרו. בחר יחידות נוספות!');
       return;
@@ -105,6 +106,8 @@ export default function App() {
         } catch (err) {
           console.error('Failed to save session:', err);
         }
+        // Refresh word stats so next game uses updated weights
+        loadWordStats(currentProfile.id);
       }
     }
 

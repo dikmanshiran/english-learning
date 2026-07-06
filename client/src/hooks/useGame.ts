@@ -125,43 +125,57 @@ export function playTone(correct: boolean) {
   }
 }
 
-// TTS
-const PREFERRED_VOICE_NAMES = [
-  'Samantha',        // macOS/iOS – clear American accent
-  'Google US English', // Chrome on Android/desktop
-  'Microsoft Zira',  // Windows
-  'Karen',           // macOS Australian – very clear
-];
+// TTS — uses ElevenLabs via backend, falls back to browser speech if unavailable
+let currentAudio: HTMLAudioElement | null = null;
 
-function pickVoice(): SpeechSynthesisVoice | null {
-  const voices = speechSynthesis.getVoices();
-  for (const name of PREFERRED_VOICE_NAMES) {
-    const v = voices.find(v => v.name === name);
-    if (v) return v;
-  }
-  // fallback: any en-US voice
-  return voices.find(v => v.lang === 'en-US') ?? null;
+function getApiBase(): string {
+  // In dev the backend runs on :3001; in production it's the same origin
+  if (location.hostname === 'localhost') return 'http://localhost:3001';
+  return '';
 }
 
-export function speak(text: string, onEnd?: () => void) {
-  if (!window.speechSynthesis) return;
+export async function speak(text: string, onEnd?: () => void): Promise<void> {
+  // Stop any currently playing audio
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+
+  try {
+    const url = `${getApiBase()}/api/tts?text=${encodeURIComponent(text)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`TTS HTTP ${res.status}`);
+
+    const blob = await res.blob();
+    const audioUrl = URL.createObjectURL(blob);
+    const audio = new Audio(audioUrl);
+    currentAudio = audio;
+
+    audio.onended = () => {
+      URL.revokeObjectURL(audioUrl);
+      currentAudio = null;
+      onEnd?.();
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(audioUrl);
+      currentAudio = null;
+      onEnd?.();
+    };
+
+    await audio.play();
+  } catch (err) {
+    console.warn('ElevenLabs TTS failed, falling back to browser speech:', err);
+    browserSpeak(text, onEnd);
+  }
+}
+
+// Browser speech fallback
+function browserSpeak(text: string, onEnd?: () => void) {
+  if (!window.speechSynthesis) { onEnd?.(); return; }
   speechSynthesis.cancel();
   const utt = new SpeechSynthesisUtterance(text);
   utt.lang = 'en-US';
   utt.rate = 0.6;
-  utt.pitch = 1.0;
-  const voice = pickVoice();
-  if (voice) utt.voice = voice;
   if (onEnd) utt.onend = onEnd;
-  // voices may load async on first call
-  if (speechSynthesis.getVoices().length === 0) {
-    speechSynthesis.onvoiceschanged = () => {
-      speechSynthesis.onvoiceschanged = null;
-      const v = pickVoice();
-      if (v) utt.voice = v;
-      speechSynthesis.speak(utt);
-    };
-  } else {
-    speechSynthesis.speak(utt);
-  }
+  speechSynthesis.speak(utt);
 }

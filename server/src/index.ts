@@ -10,6 +10,7 @@ import profileRoutes from './routes/profiles';
 import contentRoutes from './routes/content';
 import sessionRoutes from './routes/sessions';
 import statsRoutes from './routes/stats';
+import ttsRoutes from './routes/tts';
 import { errorHandler } from './middleware/errorHandler';
 import { generalLimiter } from './middleware/rateLimit';
 
@@ -38,6 +39,7 @@ app.use('/api/profiles', profileRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/tts', ttsRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {

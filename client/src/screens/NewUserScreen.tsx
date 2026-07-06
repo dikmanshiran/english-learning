@@ -10,22 +10,32 @@ interface NewUserScreenProps {
 export function NewUserScreen({ onBack, onCreated }: NewUserScreenProps) {
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const { createProfile } = useProfileStore();
 
-  function handleCreate() {
+  async function handleCreate() {
     const trimmed = name.trim();
     if (!trimmed) return;
-    const colorIdx = AVATARS.indexOf(selectedAvatar);
-    const color = AVATAR_COLORS[colorIdx >= 0 ? colorIdx : 0];
-    const profile = createProfile(trimmed, selectedAvatar, color);
-    onCreated(profile.id);
+    setLoading(true);
+    setError('');
+    try {
+      const colorIdx = AVATARS.indexOf(selectedAvatar);
+      const color = AVATAR_COLORS[colorIdx >= 0 ? colorIdx : 0];
+      const profile = await createProfile(trimmed, selectedAvatar, color);
+      onCreated(profile.id);
+    } catch {
+      setError('שגיאה ביצירת הפרופיל. נסה שוב.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <div className="screen active">
       <div className="form-card">
-        <h2>👤 New Player</h2>
-        <p>Pick an avatar and enter your name</p>
+        <h2>👤 שחקן חדש</h2>
+        <p>בחר אווטאר והזן שם</p>
         <div className="avatar-picker">
           {AVATARS.map((a) => (
             <div
@@ -40,19 +50,24 @@ export function NewUserScreen({ onBack, onCreated }: NewUserScreenProps) {
         <input
           className="name-input"
           type="text"
-          placeholder="Your name..."
+          placeholder="שם הילד..."
           maxLength={20}
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
           autoFocus
         />
+        {error && (
+          <div style={{ color: 'var(--color-danger)', fontSize: '0.85rem', textAlign: 'center', marginTop: '8px' }}>
+            {error}
+          </div>
+        )}
         <div className="form-btns">
-          <button className="form-btn ghost" onClick={onBack}>
-            ← Back
+          <button className="form-btn ghost" onClick={onBack} disabled={loading}>
+            ← חזור
           </button>
-          <button className="form-btn primary" onClick={handleCreate}>
-            Let's go! 🚀
+          <button className="form-btn primary" onClick={handleCreate} disabled={loading || !name.trim()}>
+            {loading ? '...' : 'יאללה! 🚀'}
           </button>
         </div>
       </div>

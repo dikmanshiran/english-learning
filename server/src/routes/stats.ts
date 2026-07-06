@@ -16,7 +16,8 @@ router.get('/:profileId/summary', authenticate, async (req: AuthRequest, res: Re
   const sessions = await prisma.gameSession.findMany({
     where: { profileId: req.params.profileId },
     orderBy: { completedAt: 'desc' },
-    take: 10,
+    take: 20,
+    include: { questions: true },
   });
   res.json({
     totalGames: profile.totalGames,

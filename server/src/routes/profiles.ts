@@ -30,6 +30,22 @@ router.post('/', authenticate, validate(profileSchema), async (req: AuthRequest,
   res.status(201).json(profile);
 });
 
+// PATCH /api/profiles/:id
+router.patch('/:id', authenticate, validate(profileSchema.partial()), async (req: AuthRequest, res: Response): Promise<void> => {
+  const profile = await prisma.childProfile.findFirst({
+    where: { id: req.params.id, parentId: req.parentId },
+  });
+  if (!profile) {
+    res.status(404).json({ error: 'Profile not found' });
+    return;
+  }
+  const updated = await prisma.childProfile.update({
+    where: { id: req.params.id },
+    data: req.body,
+  });
+  res.json(updated);
+});
+
 // DELETE /api/profiles/:id
 router.delete('/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   const profile = await prisma.childProfile.findFirst({

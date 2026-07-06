@@ -1,35 +1,40 @@
+import { useState } from 'react';
 import { useProfileStore } from '../store/profileStore';
+import { ParentZoneModal } from '../components/ParentZoneModal';
 
 interface ProfileScreenProps {
   onSelectProfile: (id: string) => void;
   onNewPlayer: () => void;
   isLoggedIn?: boolean;
-  email?: string | null;
-  onLogout?: () => void;
+  onParentZone?: () => void; // called after password verified
 }
 
-export function ProfileScreen({ onSelectProfile, onNewPlayer, isLoggedIn, email, onLogout }: ProfileScreenProps) {
+export function ProfileScreen({ onSelectProfile, onNewPlayer, isLoggedIn, onParentZone }: ProfileScreenProps) {
   const { profiles } = useProfileStore();
   const profileList = Object.values(profiles);
+  const [showParentModal, setShowParentModal] = useState(false);
+
+  function handleParentZone() {
+    if (isLoggedIn) {
+      setShowParentModal(true);
+    }
+  }
 
   return (
-    <div className="screen active">
+    <div className="screen active" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+      {/* Header */}
       <div className="profile-hero">
         <h1>English Adventure 🚀</h1>
-        <p>Who's playing today?</p>
-        {isLoggedIn && email && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginTop: '8px' }}>
-            <span style={{ fontSize: '.8rem', color: 'var(--text-dim)' }}>👤 {email}</span>
-            <button
-              onClick={onLogout}
-              style={{ fontSize: '.75rem', color: 'var(--text-dim)', background: 'none', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', padding: '3px 10px', cursor: 'pointer' }}
-            >
-              Logout
-            </button>
+        <p>מי משחק היום?</p>
+      </div>
+
+      {/* Child profile grid */}
+      <div className="players-grid" style={{ flex: 1 }}>
+        {profileList.length === 0 && (
+          <div style={{ gridColumn: '1/-1', color: 'var(--text-dim)', textAlign: 'center', padding: '20px 0', fontSize: '0.9rem' }}>
+            {isLoggedIn ? 'עדיין אין פרופילים. הוסף ילד!' : 'עדיין אין שחקנים'}
           </div>
         )}
-      </div>
-      <div className="players-grid">
         {profileList.map((u) => (
           <div key={u.id} className="player-card" onClick={() => onSelectProfile(u.id)}>
             <div className="player-avatar" style={{ background: u.color }}>
@@ -37,15 +42,54 @@ export function ProfileScreen({ onSelectProfile, onNewPlayer, isLoggedIn, email,
             </div>
             <div className="player-name">{u.name}</div>
             <div className="player-stats">
-              {u.totalGames} games · ⭐{u.totalStars}
+              {u.totalGames} משחקים · ⭐{u.totalStars}
             </div>
           </div>
         ))}
         <div className="add-player-btn" onClick={onNewPlayer}>
           <span className="plus">➕</span>
-          New Player
+          שחקן חדש
         </div>
       </div>
+
+      {/* Parent Zone — subtle, bottom of screen */}
+      {isLoggedIn && (
+        <div style={{ textAlign: 'center', padding: '20px 0 8px', borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: '12px' }}>
+          <button
+            onClick={handleParentZone}
+            style={{
+              background: 'none', border: 'none', color: 'var(--text-dim)',
+              fontSize: '0.85rem', cursor: 'pointer', padding: '8px 16px',
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              borderRadius: '10px',
+              transition: 'color 0.2s',
+            }}
+          >
+            🔐 אזור הורים
+          </button>
+        </div>
+      )}
+
+      {/* Guest banner */}
+      {!isLoggedIn && (
+        <div style={{
+          textAlign: 'center', padding: '14px', margin: '8px 0',
+          background: 'rgba(108,63,197,0.15)', borderRadius: '12px',
+          fontSize: '0.8rem', color: 'var(--text-dim)',
+        }}>
+          משחק ללא שמירה ·{' '}
+          <span style={{ color: 'var(--color-primary)', textDecoration: 'underline', cursor: 'pointer' }}>
+            הרשם כדי לשמור התקדמות
+          </span>
+        </div>
+      )}
+
+      {showParentModal && (
+        <ParentZoneModal
+          onSuccess={() => { setShowParentModal(false); onParentZone?.(); }}
+          onClose={() => setShowParentModal(false)}
+        />
+      )}
     </div>
   );
 }

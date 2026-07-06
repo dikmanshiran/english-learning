@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { BOOK_EXERCISES, BookExercise } from '../data/bookExercises';
 import { useProfileStore, WordStat } from '../store/profileStore';
 import { playTone } from '../hooks/useGame';
 
 const EXERCISE_COUNT = 10;
 
-// ── Weighted sampling (same logic as vocab adaptive weighting) ─────────────
+// ── Weighted sampling ──────────────────────────────────────────────────────
 
 function getWeight(id: string, wordStats: Record<string, WordStat>): number {
   const stat = wordStats[id];
@@ -20,7 +20,6 @@ function weightedSample(exercises: BookExercise[], count: number, wordStats: Rec
   const result: BookExercise[] = [];
   const pool = [...exercises];
   const poolWeights = [...weights];
-
   for (let i = 0; i < Math.min(count, exercises.length); i++) {
     const total = poolWeights.reduce((a, b) => a + b, 0);
     let r = Math.random() * total;
@@ -40,14 +39,35 @@ function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
-// ── Exercise renderers ─────────────────────────────────────────────────────
+// ── Shared "Next" button shown after a wrong answer ───────────────────────
+
+function NextButton({ onNext }: { onNext: () => void }) {
+  return (
+    <button
+      onClick={onNext}
+      style={{
+        marginTop: '16px', width: '100%', padding: '14px',
+        borderRadius: '14px', border: 'none',
+        background: 'var(--color-primary)', color: '#fff',
+        fontSize: '1rem', fontWeight: 700, cursor: 'pointer',
+      }}
+    >
+      Next →
+    </button>
+  );
+}
+
+// ── Exercise props ─────────────────────────────────────────────────────────
 
 interface ExerciseProps {
   exercise: BookExercise;
-  onAnswer: (correct: boolean) => void;
+  onAnswer: (correct: boolean) => void;  // called immediately on selection
+  onNext: () => void;                    // called to advance (auto on correct, manual on wrong)
 }
 
-function MultipleChoiceExercise({ exercise, onAnswer }: ExerciseProps) {
+// ── Multiple choice ────────────────────────────────────────────────────────
+
+function MultipleChoiceExercise({ exercise, onAnswer, onNext }: ExerciseProps) {
   const [chosen, setChosen] = useState<string | null>(null);
   const [shuffledOptions] = useState(() => shuffle(exercise.options));
 
@@ -56,8 +76,11 @@ function MultipleChoiceExercise({ exercise, onAnswer }: ExerciseProps) {
     setChosen(opt);
     const correct = opt === exercise.answer;
     playTone(correct);
-    setTimeout(() => onAnswer(correct), 900);
+    onAnswer(correct);
+    if (correct) setTimeout(onNext, 700);
   }
+
+  const isWrong = chosen !== null && chosen !== exercise.answer;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -69,24 +92,23 @@ function MultipleChoiceExercise({ exercise, onAnswer }: ExerciseProps) {
           else if (opt === chosen) { bg = 'rgba(239,68,68,0.2)'; border = '2px solid var(--color-danger)'; }
         }
         return (
-          <button
-            key={opt}
-            onClick={() => handleChoice(opt)}
-            style={{
-              padding: '14px 16px', borderRadius: '14px', border, background: bg,
-              color: '#fff', fontSize: '1rem', textAlign: 'left', cursor: chosen ? 'default' : 'pointer',
-              transition: 'background 0.2s, border 0.2s',
-            }}
-          >
+          <button key={opt} onClick={() => handleChoice(opt)} style={{
+            padding: '14px 16px', borderRadius: '14px', border, background: bg,
+            color: '#fff', fontSize: '1rem', textAlign: 'left',
+            cursor: chosen ? 'default' : 'pointer', transition: 'background 0.2s, border 0.2s',
+          }}>
             {opt}
           </button>
         );
       })}
+      {isWrong && <NextButton onNext={onNext} />}
     </div>
   );
 }
 
-function TrueFalseExercise({ exercise, onAnswer }: ExerciseProps) {
+// ── True / False ───────────────────────────────────────────────────────────
+
+function TrueFalseExercise({ exercise, onAnswer, onNext }: ExerciseProps) {
   const [chosen, setChosen] = useState<string | null>(null);
 
   function handleChoice(opt: string) {
@@ -94,39 +116,42 @@ function TrueFalseExercise({ exercise, onAnswer }: ExerciseProps) {
     setChosen(opt);
     const correct = opt === exercise.answer;
     playTone(correct);
-    setTimeout(() => onAnswer(correct), 900);
+    onAnswer(correct);
+    if (correct) setTimeout(onNext, 700);
   }
 
+  const isWrong = chosen !== null && chosen !== exercise.answer;
+
   return (
-    <div style={{ display: 'flex', gap: '12px' }}>
-      {['True', 'False'].map((opt) => {
-        let bg = opt === 'True' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
-        let border = `2px solid ${opt === 'True' ? 'var(--color-success)' : 'var(--color-danger)'}`;
-        if (chosen && chosen !== opt) { bg = 'var(--color-surface-1)'; border = '2px solid transparent'; }
-        if (chosen && opt === exercise.answer) { bg = 'rgba(16,185,129,0.3)'; border = '2px solid var(--color-success)'; }
-        if (chosen && opt === chosen && opt !== exercise.answer) { bg = 'rgba(239,68,68,0.3)'; border = '2px solid var(--color-danger)'; }
-        return (
-          <button
-            key={opt}
-            onClick={() => handleChoice(opt)}
-            style={{
+    <div>
+      <div style={{ display: 'flex', gap: '12px' }}>
+        {['True', 'False'].map((opt) => {
+          let bg = opt === 'True' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
+          let border = `2px solid ${opt === 'True' ? 'var(--color-success)' : 'var(--color-danger)'}`;
+          if (chosen && chosen !== opt) { bg = 'var(--color-surface-1)'; border = '2px solid transparent'; }
+          if (chosen && opt === exercise.answer) { bg = 'rgba(16,185,129,0.3)'; border = '2px solid var(--color-success)'; }
+          if (chosen && opt === chosen && opt !== exercise.answer) { bg = 'rgba(239,68,68,0.3)'; border = '2px solid var(--color-danger)'; }
+          return (
+            <button key={opt} onClick={() => handleChoice(opt)} style={{
               flex: 1, padding: '18px', borderRadius: '14px', border, background: bg,
               color: '#fff', fontSize: '1.1rem', fontWeight: 700,
               cursor: chosen ? 'default' : 'pointer', transition: 'all 0.2s',
-            }}
-          >
-            {opt === 'True' ? '✅ True' : '❌ False'}
-          </button>
-        );
-      })}
+            }}>
+              {opt === 'True' ? '✅ True' : '❌ False'}
+            </button>
+          );
+        })}
+      </div>
+      {isWrong && <NextButton onNext={onNext} />}
     </div>
   );
 }
 
-function FillBlankExercise({ exercise, onAnswer }: ExerciseProps) {
+// ── Fill blank ─────────────────────────────────────────────────────────────
+
+function FillBlankExercise({ exercise, onAnswer, onNext }: ExerciseProps) {
   const [chosen, setChosen] = useState<string | null>(null);
   const [shuffledOptions] = useState(() => shuffle(exercise.options));
-
   const parts = exercise.question.split('___');
 
   function handleChoice(opt: string) {
@@ -134,8 +159,11 @@ function FillBlankExercise({ exercise, onAnswer }: ExerciseProps) {
     setChosen(opt);
     const correct = opt === exercise.answer;
     playTone(correct);
-    setTimeout(() => onAnswer(correct), 900);
+    onAnswer(correct);
+    if (correct) setTimeout(onNext, 700);
   }
+
+  const isWrong = chosen !== null && chosen !== exercise.answer;
 
   return (
     <div>
@@ -146,8 +174,7 @@ function FillBlankExercise({ exercise, onAnswer }: ExerciseProps) {
         {parts[0]}
         <span style={{
           display: 'inline-block', minWidth: '80px', borderBottom: '2px solid var(--color-accent)',
-          textAlign: 'center', color: chosen ? 'var(--color-accent)' : 'transparent',
-          margin: '0 4px',
+          textAlign: 'center', color: 'var(--color-accent)', margin: '0 4px',
         }}>
           {chosen || '___'}
         </span>
@@ -172,11 +199,14 @@ function FillBlankExercise({ exercise, onAnswer }: ExerciseProps) {
           );
         })}
       </div>
+      {isWrong && <NextButton onNext={onNext} />}
     </div>
   );
 }
 
-function OddOneOutExercise({ exercise, onAnswer }: ExerciseProps) {
+// ── Odd one out ────────────────────────────────────────────────────────────
+
+function OddOneOutExercise({ exercise, onAnswer, onNext }: ExerciseProps) {
   const [chosen, setChosen] = useState<string | null>(null);
 
   function handleChoice(opt: string) {
@@ -184,33 +214,41 @@ function OddOneOutExercise({ exercise, onAnswer }: ExerciseProps) {
     setChosen(opt);
     const correct = opt === exercise.answer;
     playTone(correct);
-    setTimeout(() => onAnswer(correct), 900);
+    onAnswer(correct);
+    if (correct) setTimeout(onNext, 700);
   }
 
+  const isWrong = chosen !== null && chosen !== exercise.answer;
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-      {exercise.options.map((opt) => {
-        let bg = 'var(--color-surface-1)';
-        let border = '2px solid transparent';
-        if (chosen) {
-          if (opt === exercise.answer) { bg = 'rgba(16,185,129,0.2)'; border = '2px solid var(--color-success)'; }
-          else if (opt === chosen) { bg = 'rgba(239,68,68,0.2)'; border = '2px solid var(--color-danger)'; }
-        }
-        return (
-          <button key={opt} onClick={() => handleChoice(opt)} style={{
-            padding: '16px', borderRadius: '14px', border, background: bg,
-            color: '#fff', fontSize: '1rem', fontWeight: 600,
-            cursor: chosen ? 'default' : 'pointer', transition: 'all 0.2s',
-          }}>
-            {opt}
-          </button>
-        );
-      })}
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        {exercise.options.map((opt) => {
+          let bg = 'var(--color-surface-1)';
+          let border = '2px solid transparent';
+          if (chosen) {
+            if (opt === exercise.answer) { bg = 'rgba(16,185,129,0.2)'; border = '2px solid var(--color-success)'; }
+            else if (opt === chosen) { bg = 'rgba(239,68,68,0.2)'; border = '2px solid var(--color-danger)'; }
+          }
+          return (
+            <button key={opt} onClick={() => handleChoice(opt)} style={{
+              padding: '16px', borderRadius: '14px', border, background: bg,
+              color: '#fff', fontSize: '1rem', fontWeight: 600,
+              cursor: chosen ? 'default' : 'pointer', transition: 'all 0.2s',
+            }}>
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+      {isWrong && <NextButton onNext={onNext} />}
     </div>
   );
 }
 
-function AAnExercise({ exercise, onAnswer }: ExerciseProps) {
+// ── A / An ─────────────────────────────────────────────────────────────────
+
+function AAnExercise({ exercise, onAnswer, onNext }: ExerciseProps) {
   const [chosen, setChosen] = useState<string | null>(null);
   const word = exercise.question.replace('___ ', '');
 
@@ -219,8 +257,11 @@ function AAnExercise({ exercise, onAnswer }: ExerciseProps) {
     setChosen(opt);
     const correct = opt === exercise.answer;
     playTone(correct);
-    setTimeout(() => onAnswer(correct), 900);
+    onAnswer(correct);
+    if (correct) setTimeout(onNext, 700);
   }
+
+  const isWrong = chosen !== null && chosen !== exercise.answer;
 
   return (
     <div>
@@ -249,15 +290,18 @@ function AAnExercise({ exercise, onAnswer }: ExerciseProps) {
           );
         })}
       </div>
+      {isWrong && <NextButton onNext={onNext} />}
     </div>
   );
 }
 
-function WordOrderExercise({ exercise, onAnswer }: ExerciseProps) {
-  const [shuffledWords] = useState(() => shuffle(exercise.options));
+// ── Word order ─────────────────────────────────────────────────────────────
+
+function WordOrderExercise({ exercise, onAnswer, onNext }: ExerciseProps) {
   const [chosen, setChosen] = useState<string[]>([]);
   const [remaining, setRemaining] = useState<string[]>(() => shuffle(exercise.options));
   const [submitted, setSubmitted] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
 
   function addWord(word: string, idx: number) {
     if (submitted) return;
@@ -276,23 +320,23 @@ function WordOrderExercise({ exercise, onAnswer }: ExerciseProps) {
     setSubmitted(true);
     const attempt = chosen.join(' ');
     const correct = attempt === exercise.answer;
+    setIsCorrect(correct);
     playTone(correct);
-    setTimeout(() => onAnswer(correct), 1200);
+    onAnswer(correct);
+    if (correct) setTimeout(onNext, 800);
   }
 
   const attempt = chosen.join(' ');
-  const correct = submitted && attempt === exercise.answer;
-  const wrong = submitted && attempt !== exercise.answer;
+  const wrong = submitted && !isCorrect;
 
   return (
     <div>
       {/* Answer area */}
       <div style={{
         minHeight: '56px', borderRadius: '14px', padding: '12px 14px',
-        border: `2px solid ${submitted ? (correct ? 'var(--color-success)' : 'var(--color-danger)') : 'rgba(255,255,255,0.2)'}`,
-        background: submitted ? (correct ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)') : 'rgba(255,255,255,0.04)',
+        border: `2px solid ${submitted ? (isCorrect ? 'var(--color-success)' : 'var(--color-danger)') : 'rgba(255,255,255,0.2)'}`,
+        background: submitted ? (isCorrect ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)') : 'rgba(255,255,255,0.04)',
         display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px',
-        cursor: submitted ? 'default' : 'pointer',
       }}>
         {chosen.length === 0 && (
           <span style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Tap words below to build the sentence</span>
@@ -320,13 +364,18 @@ function WordOrderExercise({ exercise, onAnswer }: ExerciseProps) {
         ))}
       </div>
 
-      {submitted && wrong && (
-        <div style={{ color: 'var(--color-success)', fontSize: '0.85rem', marginBottom: '8px' }}>
-          ✓ Correct: {exercise.answer}
+      {/* Show correct answer when wrong */}
+      {wrong && (
+        <div style={{
+          background: 'rgba(16,185,129,0.1)', border: '1px solid var(--color-success)',
+          borderRadius: '10px', padding: '10px 14px', marginBottom: '8px',
+          fontSize: '0.9rem', color: 'var(--color-success)',
+        }}>
+          ✓ Correct answer: <strong>{exercise.answer}</strong>
         </div>
       )}
 
-      {!submitted && (
+      {!submitted ? (
         <button onClick={handleCheck} disabled={chosen.length === 0} style={{
           width: '100%', padding: '14px', borderRadius: '14px', border: 'none',
           background: chosen.length === 0 ? 'rgba(255,255,255,0.1)' : 'var(--color-primary)',
@@ -336,7 +385,9 @@ function WordOrderExercise({ exercise, onAnswer }: ExerciseProps) {
         }}>
           Check ✓
         </button>
-      )}
+      ) : wrong ? (
+        <NextButton onNext={onNext} />
+      ) : null}
     </div>
   );
 }
@@ -355,33 +406,40 @@ export function ExercisesScreen({ onHome, onResults }: ExercisesScreenProps) {
   );
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState(0);
+  const [answeredCorrect, setAnsweredCorrect] = useState<boolean | null>(null);
   const [results, setResults] = useState<{ id: string; correct: boolean }[]>([]);
 
   const current = exercises[currentIdx];
 
   const handleAnswer = useCallback((correct: boolean) => {
-    const newResults = [...results, { id: current.id, correct }];
-    setResults(newResults);
+    setAnsweredCorrect(correct);
     if (correct) setScore((s) => s + 1);
+  }, []);
+
+  const handleNext = useCallback(() => {
+    if (answeredCorrect === null) return;
+    const newResults = [...results, { id: current.id, correct: answeredCorrect }];
+    setResults(newResults);
 
     if (currentIdx + 1 >= exercises.length) {
-      // Done — update adaptive stats
+      const finalScore = score; // already updated by handleAnswer
       if (currentProfile) {
         const log = newResults.map((r) => ({
           questionText: r.id,
           firstTryCorrect: r.correct,
         }));
-        updateProfileStats(currentProfile.id, correct ? 1 : 0, log);
+        updateProfileStats(currentProfile.id, 0, log);
       }
-      setTimeout(() => onResults(score + (correct ? 1 : 0), exercises.length), 400);
+      onResults(finalScore, exercises.length);
     } else {
-      setTimeout(() => setCurrentIdx((i) => i + 1), 400);
+      setAnsweredCorrect(null);
+      setCurrentIdx((i) => i + 1);
     }
-  }, [currentIdx, exercises, score, results, current, currentProfile, updateProfileStats, onResults]);
+  }, [answeredCorrect, currentIdx, exercises, score, results, current, currentProfile, updateProfileStats, onResults]);
 
   if (!current) return null;
 
-  const progress = ((currentIdx) / exercises.length) * 100;
+  const progress = (currentIdx / exercises.length) * 100;
 
   return (
     <div className="screen active" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -441,8 +499,7 @@ export function ExercisesScreen({ onHome, onResults }: ExercisesScreenProps) {
       {/* Question */}
       {current.question && (
         <div style={{
-          fontSize: current.type === 'a-an' ? '0.95rem' : '1.05rem',
-          fontWeight: 600, marginBottom: '18px', lineHeight: 1.5,
+          fontSize: '1.05rem', fontWeight: 600, marginBottom: '18px', lineHeight: 1.5,
         }}>
           {current.type === 'odd-one-out'
             ? `Which word does NOT belong in the group: "${current.question}"?`
@@ -450,25 +507,25 @@ export function ExercisesScreen({ onHome, onResults }: ExercisesScreenProps) {
         </div>
       )}
 
-      {/* Exercise component */}
+      {/* Exercise */}
       <div style={{ flex: 1 }}>
         {current.type === 'multiple-choice' && (
-          <MultipleChoiceExercise exercise={current} onAnswer={handleAnswer} />
+          <MultipleChoiceExercise key={current.id} exercise={current} onAnswer={handleAnswer} onNext={handleNext} />
         )}
         {current.type === 'true-false' && (
-          <TrueFalseExercise exercise={current} onAnswer={handleAnswer} />
+          <TrueFalseExercise key={current.id} exercise={current} onAnswer={handleAnswer} onNext={handleNext} />
         )}
         {current.type === 'fill-blank' && (
-          <FillBlankExercise exercise={current} onAnswer={handleAnswer} />
+          <FillBlankExercise key={current.id} exercise={current} onAnswer={handleAnswer} onNext={handleNext} />
         )}
         {current.type === 'odd-one-out' && (
-          <OddOneOutExercise exercise={current} onAnswer={handleAnswer} />
+          <OddOneOutExercise key={current.id} exercise={current} onAnswer={handleAnswer} onNext={handleNext} />
         )}
         {current.type === 'a-an' && (
-          <AAnExercise exercise={current} onAnswer={handleAnswer} />
+          <AAnExercise key={current.id} exercise={current} onAnswer={handleAnswer} onNext={handleNext} />
         )}
         {current.type === 'word-order' && (
-          <WordOrderExercise exercise={current} onAnswer={handleAnswer} />
+          <WordOrderExercise key={current.id} exercise={current} onAnswer={handleAnswer} onNext={handleNext} />
         )}
       </div>
     </div>

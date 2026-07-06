@@ -4,19 +4,24 @@ import { WrongAnswer } from '../types/game';
 interface ResultsScreenProps {
   onPlayAgain: () => void;
   onHome: () => void;
+  // Optional overrides for exercises mode (bypasses gameStore)
+  overrideScore?: number;
+  overrideTotal?: number;
 }
 
-export function ResultsScreen({ onPlayAgain, onHome }: ResultsScreenProps) {
-  const { questions, currentQ, score, lives, wrongAnswers } = useGameStore();
+export function ResultsScreen({ onPlayAgain, onHome, overrideScore, overrideTotal }: ResultsScreenProps) {
+  const { questions, currentQ, score: gameScore, lives, wrongAnswers } = useGameStore();
 
-  const total = questions.length;
+  const isExercisesMode = overrideScore !== undefined;
+  const score = isExercisesMode ? overrideScore : gameScore;
+  const total = isExercisesMode ? (overrideTotal ?? 10) : questions.length;
   const pct = total > 0 ? score / total : 0;
 
   let emoji = '💪';
   let title = 'Keep Practicing!';
   let stars = '⭐';
 
-  if (lives === 0) {
+  if (!isExercisesMode && lives === 0) {
     emoji = '😅';
     title = 'Game Over!';
     stars = score >= total * 0.5 ? '⭐⭐' : '⭐';
@@ -35,9 +40,9 @@ export function ResultsScreen({ onPlayAgain, onHome }: ResultsScreenProps) {
   }
 
   const subtitle =
-    lives === 0
+    !isExercisesMode && lives === 0
       ? `You ran out of hearts after ${currentQ} questions.`
-      : `You scored ${score} points on ${total} questions!`;
+      : `You got ${score} out of ${total} correct!`;
 
   return (
     <div className="screen active">
@@ -49,7 +54,11 @@ export function ResultsScreen({ onPlayAgain, onHome }: ResultsScreenProps) {
         <div className="result-subtitle">{subtitle}</div>
 
         <div className="review-section">
-          {wrongAnswers.length === 0 ? (
+          {isExercisesMode ? (
+            <div className="review-title" style={{ color: pct >= 0.7 ? '#6ee7b7' : 'var(--color-accent)' }}>
+              {pct >= 0.9 ? '🎯 Excellent work!' : pct >= 0.7 ? '👍 Well done!' : '📚 Keep practicing!'}
+            </div>
+          ) : wrongAnswers.length === 0 ? (
             <div className="review-title" style={{ color: '#6ee7b7' }}>
               🎯 Perfect — no mistakes!
             </div>

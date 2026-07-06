@@ -8,6 +8,7 @@ import { ResultsScreen } from './screens/ResultsScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
+import { ExercisesScreen } from './screens/ExercisesScreen';
 import { useGameStore } from './store/gameStore';
 import { useProfileStore } from './store/profileStore';
 import { useAuthStore } from './store/authStore';
@@ -16,12 +17,13 @@ import { useQuestionPool } from './hooks/useQuestionPool';
 import { refreshToken, logout } from './services/authService';
 import { saveSession } from './services/sessionService';
 
-type Screen = 'landing' | 'login' | 'register' | 'profile' | 'newUser' | 'home' | 'game' | 'results' | 'dashboard';
+type Screen = 'landing' | 'login' | 'register' | 'profile' | 'newUser' | 'home' | 'game' | 'results' | 'dashboard' | 'exercises' | 'exercises-results';
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('landing');
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [dashboardProfileId, setDashboardProfileId] = useState<string | null>(null);
+  const [exercisesResult, setExercisesResult] = useState<{ score: number; total: number } | null>(null);
   const { isLoggedIn, clearAuth } = useAuthStore();
 
   const { selectedUnits, questionCount, setQuestions, resetGame } = useGameStore();
@@ -191,7 +193,33 @@ export default function App() {
       )}
 
       {screen === 'home' && (
-        <HomeScreen onStart={handleStart} onSwitchPlayer={() => setScreen('profile')} />
+        <HomeScreen
+          onStartVocab={handleStart}
+          onStartExercises={() => setScreen('exercises')}
+          onSwitchPlayer={() => setScreen('profile')}
+        />
+      )}
+
+      {screen === 'exercises' && (
+        <ExercisesScreen
+          onHome={() => setScreen('home')}
+          onResults={(score, total) => {
+            setExercisesResult({ score, total });
+            const pct = total > 0 ? score / total : 0;
+            if (pct >= 0.9) { fireConfetti(); setTimeout(fireConfetti, 400); }
+            else if (pct >= 0.7) { fireConfetti(); }
+            setScreen('exercises-results');
+          }}
+        />
+      )}
+
+      {screen === 'exercises-results' && exercisesResult && (
+        <ResultsScreen
+          onPlayAgain={() => setScreen('exercises')}
+          onHome={() => setScreen('home')}
+          overrideScore={exercisesResult.score}
+          overrideTotal={exercisesResult.total}
+        />
       )}
 
       {screen === 'game' && (

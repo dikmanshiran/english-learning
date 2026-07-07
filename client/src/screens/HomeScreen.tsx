@@ -78,9 +78,6 @@ export function HomeScreen({ onStartVocab, onStartExercises, onSwitchPlayer }: H
         </button>
       </div>
 
-      <p style={{ color: 'var(--text-dim)', fontSize: '0.78rem', textAlign: 'center', margin: '4px 0 0' }}>
-        * Question count applies to Vocabulary mode. Exercises are always 10.
-      </p>
     </div>
   );
 }

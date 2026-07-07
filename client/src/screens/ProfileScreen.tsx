@@ -41,8 +41,8 @@ export function ProfileScreen({ onSelectProfile, onNewPlayer, isLoggedIn, onPare
               {u.avatar}
             </div>
             <div className="player-name">{u.name}</div>
-            <div className="player-stats">
-              {u.totalGames} משחקים · ⭐{u.totalStars}
+            <div className="player-stats" style={{ direction: 'ltr' }}>
+              🎮 {u.totalGames} · ⭐ {u.totalStars}
             </div>
           </div>
         ))}

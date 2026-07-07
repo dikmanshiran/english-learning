@@ -530,8 +530,8 @@ export function ExercisesScreen({ onHome, onResults }: ExercisesScreenProps) {
         </div>
       )}
 
-      {/* Question */}
-      {current.question && (
+      {/* Question — fill-blank renders its own sentence internally, so skip here */}
+      {current.question && current.type !== 'fill-blank' && (
         <div style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '18px', lineHeight: 1.5 }}>
           {current.type === 'odd-one-out'
             ? `Which word does NOT belong in the group: "${current.question}"?`

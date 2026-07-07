@@ -38,6 +38,29 @@ function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
+// ── Hebrew instruction translations ────────────────────────────────────────
+
+const INSTRUCTION_HE: Record<string, string> = {
+  'Read and decide: True or False?':               'קרא והחלט: נכון או לא נכון?',
+  'Read and answer the question.':                 'קרא וענה על השאלה.',
+  'Read the clues and find the animal.':           'קרא את הרמזים ומצא את החיה.',
+  'Which word does NOT belong?':                   'איזו מילה לא שייכת לקבוצה?',
+  'What does this word mean? Choose the correct answer.': 'מה המשמעות של המילה? בחר את התשובה הנכונה.',
+  'Choose the correct word to complete the sentence.':    'בחר את המילה הנכונה להשלמת המשפט.',
+  'Choose the correct season.':                    'בחר את העונה הנכונה.',
+  'Put the words in the correct order.':           'סדר את המילים בסדר הנכון.',
+  'Choose the correct preposition.':               'בחר את מילת היחס הנכונה.',
+  'Read and answer.':                              'קרא וענה.',
+  'Read and circle the correct answer.':           'קרא והקף את התשובה הנכונה.',
+  'Read the description. Which animal is it?':     'קרא את התיאור. איזו חיה זו?',
+  'Read and choose the correct answer.':           'קרא ובחר את התשובה הנכונה.',
+  'Read about pandas and answer.':                 'קרא על הפנדות וענה.',
+  'Read the letter and answer.':                   'קרא את המכתב וענה.',
+  'Read the postcard and answer.':                 'קרא את הגלויה וענה.',
+  'Read the story and answer.':                    'קרא את הסיפור וענה.',
+  'Choose "a" or "an".':                          '.בחר "a" או "an"',
+};
+
 // ── Exercise props ─────────────────────────────────────────────────────────
 // onFirstWrong: called once when the child gets it wrong the first time (for scoring)
 // onCorrect:    called when the child eventually answers correctly (advance)
@@ -512,9 +535,16 @@ export function ExercisesScreen({ onHome, onResults }: ExercisesScreenProps) {
         </span>
       </div>
 
-      {/* Instruction */}
-      <div style={{ color: 'var(--text-dim)', fontSize: '0.88rem', marginBottom: '10px' }}>
-        {current.instruction}
+      {/* Instruction — English + Hebrew */}
+      <div style={{ marginBottom: '10px' }}>
+        <div style={{ color: 'var(--text-dim)', fontSize: '0.88rem' }}>
+          {current.instruction}
+        </div>
+        {INSTRUCTION_HE[current.instruction] && (
+          <div style={{ color: 'var(--text-dim)', fontSize: '0.85rem', direction: 'rtl', marginTop: '2px' }}>
+            {INSTRUCTION_HE[current.instruction]}
+          </div>
+        )}
       </div>
 
       {/* Reading passage */}

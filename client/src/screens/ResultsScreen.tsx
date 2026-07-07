@@ -101,7 +101,7 @@ export function ResultsScreen({ onPlayAgain, onHome, overrideScore, overrideTota
             🔄 Play Again
           </button>
           <button className="result-btn secondary" onClick={onHome}>
-            🏠 Change Units
+            🏠 Home
           </button>
         </div>
       </div>

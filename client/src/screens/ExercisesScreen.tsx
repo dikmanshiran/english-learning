@@ -3,6 +3,7 @@ import { BOOK_EXERCISES, BookExercise } from '../data/bookExercises';
 import { useProfileStore, WordStat } from '../store/profileStore';
 import { useGameStore } from '../store/gameStore';
 import { playTone } from '../hooks/useGame';
+import { filterByLevel } from '../utils/level';
 
 // ── Weighted sampling ──────────────────────────────────────────────────────
 
@@ -424,7 +425,7 @@ export function ExercisesScreen({ onHome, onResults }: ExercisesScreenProps) {
   const { wordStats, currentProfile, updateProfileStats } = useProfileStore();
   const { questionCount } = useGameStore();
   const [exercises] = useState<BookExercise[]>(() =>
-    weightedSample(BOOK_EXERCISES, questionCount, wordStats)
+    weightedSample(filterByLevel(BOOK_EXERCISES, currentProfile?.level ?? 'INTERMEDIATE'), questionCount, wordStats)
   );
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState(0);

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { UserProfile, AVATARS, AVATAR_COLORS } from '../types/game';
+import { UserProfile, AVATARS, AVATAR_COLORS, Level } from '../types/game';
 import { v4 as uuidv4 } from 'uuid';
 import * as profilesService from '../services/profilesService';
 import { getWordStats } from '../services/statsService';
@@ -13,7 +13,12 @@ export interface WordStat {
 
 function loadLocalProfiles(): Record<string, UserProfile> {
   try {
-    return JSON.parse(localStorage.getItem('ea_users') || '{}');
+    const profiles: Record<string, UserProfile> = JSON.parse(localStorage.getItem('ea_users') || '{}');
+    // Backfill level for profiles saved before levels existed.
+    for (const p of Object.values(profiles)) {
+      if (!p.level) p.level = 'INTERMEDIATE';
+    }
+    return profiles;
   } catch {
     return {};
   }
@@ -47,8 +52,9 @@ interface ProfileState {
   loadLocalProfiles: () => void;
   loadWordStats: (profileId: string) => Promise<void>;
 
-  createProfile: (name: string, avatar: string, color: string) => Promise<UserProfile>;
+  createProfile: (name: string, avatar: string, color: string, level?: Level) => Promise<UserProfile>;
   selectProfile: (id: string) => void;
+  updateProfileLevel: (id: string, level: Level) => Promise<void>;
   updateProfileStats: (
     id: string,
     starsEarned: number,
@@ -99,16 +105,16 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     }
   },
 
-  createProfile: async (name: string, avatar: string, color: string): Promise<UserProfile> => {
+  createProfile: async (name: string, avatar: string, color: string, level: Level = 'INTERMEDIATE'): Promise<UserProfile> => {
     const { isServerBacked } = get();
     if (isServerBacked) {
-      const profile = await profilesService.createProfile(name, avatar, color);
+      const profile = await profilesService.createProfile(name, avatar, color, level);
       const profiles = { ...get().profiles, [profile.id]: profile };
       set({ profiles });
       return profile;
     } else {
       const id = uuidv4();
-      const profile: UserProfile = { id, name, avatar, color, totalGames: 0, totalStars: 0, stats: {} };
+      const profile: UserProfile = { id, name, avatar, color, level, totalGames: 0, totalStars: 0, stats: {} };
       const profiles = { ...get().profiles, [id]: profile };
       saveLocalProfiles(profiles);
       set({ profiles });
@@ -119,6 +125,26 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   selectProfile: (id: string) => {
     const profile = get().profiles[id];
     if (profile) set({ currentProfile: profile });
+  },
+
+  updateProfileLevel: async (id: string, level: Level) => {
+    const { isServerBacked } = get();
+    const profiles = { ...get().profiles };
+    const profile = profiles[id];
+    if (!profile) return;
+
+    if (isServerBacked) {
+      const updated = await profilesService.updateProfile(id, { level });
+      profiles[id] = updated;
+    } else {
+      profiles[id] = { ...profile, level };
+      saveLocalProfiles(profiles);
+    }
+
+    set({
+      profiles,
+      currentProfile: get().currentProfile?.id === id ? profiles[id] : get().currentProfile,
+    });
   },
 
   updateProfileStats: (

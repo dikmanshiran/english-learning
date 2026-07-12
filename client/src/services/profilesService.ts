@@ -1,5 +1,5 @@
 import api from './api';
-import { UserProfile } from '../types/game';
+import { UserProfile, Level } from '../types/game';
 
 export interface ServerProfile {
   id: string;
@@ -7,6 +7,7 @@ export interface ServerProfile {
   name: string;
   avatar: string;
   color: string;
+  level: Level;
   totalGames: number;
   totalStars: number;
 }
@@ -17,6 +18,7 @@ function toUserProfile(p: ServerProfile): UserProfile {
     name: p.name,
     avatar: p.avatar,
     color: p.color,
+    level: p.level ?? 'INTERMEDIATE',
     totalGames: p.totalGames,
     totalStars: p.totalStars,
     stats: {},
@@ -29,12 +31,12 @@ export async function fetchProfiles(): Promise<UserProfile[]> {
   return (data as ServerProfile[]).map(toUserProfile);
 }
 
-export async function createProfile(name: string, avatar: string, color: string): Promise<UserProfile> {
-  const { data } = await api.post('/profiles', { name, avatar, color });
+export async function createProfile(name: string, avatar: string, color: string, level: Level = 'INTERMEDIATE'): Promise<UserProfile> {
+  const { data } = await api.post('/profiles', { name, avatar, color, level });
   return toUserProfile(data as ServerProfile);
 }
 
-export async function updateProfile(id: string, fields: Partial<{ name: string; avatar: string; color: string }>): Promise<UserProfile> {
+export async function updateProfile(id: string, fields: Partial<{ name: string; avatar: string; color: string; level: Level }>): Promise<UserProfile> {
   const { data } = await api.patch(`/profiles/${id}`, fields);
   return toUserProfile(data as ServerProfile);
 }

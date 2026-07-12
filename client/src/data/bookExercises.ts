@@ -9,6 +9,8 @@
 //   odd-one-out      — 4 words, pick the one that doesn't belong
 //   a-an             — choose 'a' or 'an' before a word
 
+import { Level } from '../types/game';
+
 export type BookExerciseType =
   | 'multiple-choice'
   | 'true-false'
@@ -26,6 +28,7 @@ export interface BookExercise {
   question: string;        // the question / statement / sentence with ___
   options: string[];       // answer choices (or word tiles for word-order)
   answer: string;          // correct answer (or full sentence for word-order)
+  level?: Level;           // omitted = Intermediate (all current exercises are untagged)
 }
 
 export const BOOK_EXERCISES: BookExercise[] = [

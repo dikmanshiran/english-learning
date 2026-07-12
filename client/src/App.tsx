@@ -29,7 +29,7 @@ export default function App() {
   const { selectedUnits, questionCount, setQuestions, resetGame } = useGameStore();
   const { selectProfile, updateProfileStats, currentProfile, loadServerProfiles, loadLocalProfiles, loadWordStats, clearProfiles, isServerBacked, wordStats } = useProfileStore();
   const buildQuestions = useBuildQuestions();
-  const pool = useQuestionPool(selectedUnits);
+  const pool = useQuestionPool(selectedUnits, currentProfile?.level ?? 'INTERMEDIATE');
 
   const fireConfetti = useCallback(() => setConfettiTrigger((n) => n + 1), []);
 

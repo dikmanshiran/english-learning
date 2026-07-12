@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AVATARS, AVATAR_COLORS } from '../types/game';
+import { AVATARS, AVATAR_COLORS, LEVELS, Level } from '../types/game';
 import { useProfileStore } from '../store/profileStore';
 
 interface NewUserScreenProps {
@@ -10,6 +10,7 @@ interface NewUserScreenProps {
 export function NewUserScreen({ onBack, onCreated }: NewUserScreenProps) {
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   const [name, setName] = useState('');
+  const [level, setLevel] = useState<Level>('INTERMEDIATE');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { createProfile } = useProfileStore();
@@ -22,7 +23,7 @@ export function NewUserScreen({ onBack, onCreated }: NewUserScreenProps) {
     try {
       const colorIdx = AVATARS.indexOf(selectedAvatar);
       const color = AVATAR_COLORS[colorIdx >= 0 ? colorIdx : 0];
-      const profile = await createProfile(trimmed, selectedAvatar, color);
+      const profile = await createProfile(trimmed, selectedAvatar, color, level);
       onCreated(profile.id);
     } catch {
       setError('שגיאה ביצירת הפרופיל. נסה שוב.');
@@ -57,6 +58,28 @@ export function NewUserScreen({ onBack, onCreated }: NewUserScreenProps) {
           onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
           autoFocus
         />
+        <p style={{ marginTop: '14px', marginBottom: '6px', fontSize: '0.85rem', color: 'var(--text-dim)' }}>
+          באיזו רמה להתחיל?
+        </p>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {LEVELS.map((lvl) => (
+            <button
+              key={lvl.id}
+              type="button"
+              onClick={() => setLevel(lvl.id)}
+              style={{
+                flex: 1, padding: '10px 6px', borderRadius: '12px',
+                border: level === lvl.id ? '2px solid var(--color-primary)' : '2px solid transparent',
+                background: level === lvl.id ? 'rgba(108,63,197,0.2)' : 'var(--color-surface-1)',
+                color: '#fff', cursor: 'pointer',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
+              }}
+            >
+              <span style={{ fontSize: '1.3rem' }}>{lvl.icon}</span>
+              <span style={{ fontSize: '0.75rem' }}>{lvl.labelHe}</span>
+            </button>
+          ))}
+        </div>
         {error && (
           <div style={{ color: 'var(--color-danger)', fontSize: '0.85rem', textAlign: 'center', marginTop: '8px' }}>
             {error}

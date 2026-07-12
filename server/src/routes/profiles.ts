@@ -10,6 +10,7 @@ const profileSchema = z.object({
   name: z.string().min(1).max(30),
   avatar: z.string().default('🦁'),
   color: z.string().default('#6c3fc5'),
+  level: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']).default('INTERMEDIATE'),
 });
 
 // GET /api/profiles
@@ -23,9 +24,9 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response): Promise<v
 
 // POST /api/profiles
 router.post('/', authenticate, validate(profileSchema), async (req: AuthRequest, res: Response): Promise<void> => {
-  const { name, avatar, color } = req.body as z.infer<typeof profileSchema>;
+  const { name, avatar, color, level } = req.body as z.infer<typeof profileSchema>;
   const profile = await prisma.childProfile.create({
-    data: { name, avatar, color, parentId: req.parentId },
+    data: { name, avatar, color, level, parentId: req.parentId },
   });
   res.status(201).json(profile);
 });

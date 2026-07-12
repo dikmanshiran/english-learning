@@ -1,16 +1,25 @@
 export type QuestionKind = 'e2h' | 'h2e' | 'sentence' | 'listen';
 export type MasteryLevel = 'UNSEEN' | 'STRUGGLING' | 'LEARNING' | 'MASTERED';
+export type Level = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+
+export const LEVELS: { id: Level; label: string; labelHe: string; icon: string }[] = [
+  { id: 'BEGINNER', label: 'Beginner', labelHe: 'מתחיל', icon: '🌱' },
+  { id: 'INTERMEDIATE', label: 'Intermediate', labelHe: 'בינוני', icon: '🌿' },
+  { id: 'ADVANCED', label: 'Advanced', labelHe: 'מתקדם', icon: '🌳' },
+];
 
 export interface VocabItem {
   e: string;
   h: string;
   u: number;
+  level: Level;
 }
 
 export interface PhraseItem {
   e: string;
   h: string;
   u: number;
+  level: Level;
 }
 
 export interface SentenceItem {
@@ -18,12 +27,14 @@ export interface SentenceItem {
   a: string;
   opts: string[];
   u: number;
+  level: Level;
 }
 
 export interface ListenItem {
   e: string;
   h: string;
   u: number;
+  level: Level;
 }
 
 export interface Question {
@@ -51,6 +62,7 @@ export interface UserProfile {
   name: string;
   avatar: string;
   color: string;
+  level: Level;
   totalGames: number;
   totalStars: number;
   stats: Record<string, { correct: number; wrong: number; lastSeen: number }>;

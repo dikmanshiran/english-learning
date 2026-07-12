@@ -1,6 +1,12 @@
-import { VocabItem, PhraseItem, SentenceItem, ListenItem } from '../types/game';
+import { VocabItem, PhraseItem, SentenceItem, ListenItem, Level } from '../types/game';
 
-export const VOCAB: VocabItem[] = [
+// All hand-authored content below is Intermediate. Beginner/Advanced sets can be
+// added later as separate RAW arrays passed through withLevel with a different level.
+function withLevel<T extends object>(items: T[], level: Level = 'INTERMEDIATE'): (T & { level: Level })[] {
+  return items.map((item) => ({ ...item, level }));
+}
+
+const VOCAB_RAW: Omit<VocabItem, 'level'>[] = [
   // Unit 1 – At School
   { e: 'friend', h: 'חָבֵר', u: 1 }, { e: 'grade', h: 'כִּיתָה', u: 1 }, { e: 'house', h: 'בַּיִת', u: 1 },
   { e: 'new', h: 'חָדָש', u: 1 }, { e: 'school', h: 'בֵּית סֵפֶר', u: 1 }, { e: 'teacher', h: 'מוֹרֶה', u: 1 },
@@ -84,8 +90,9 @@ export const VOCAB: VocabItem[] = [
   { e: 'left', h: 'שְׂמֹאל', u: 5 }, { e: 'north', h: 'צָפוֹן', u: 5 }, { e: 'right', h: 'יָמִין', u: 5 },
   { e: 'south', h: 'דָּרוֹם', u: 5 }, { e: 'west', h: 'מַעֲרָב', u: 5 }, { e: 'east', h: 'מִזְרָח', u: 5 },
 ];
+export const VOCAB: VocabItem[] = withLevel(VOCAB_RAW);
 
-export const PHRASES: PhraseItem[] = [
+const PHRASES_RAW: Omit<PhraseItem, 'level'>[] = [
   { e: "What's your name?", h: 'מַה שִׁמְךָ?', u: 1 },
   { e: 'My name is...', h: 'שְׁמִי...', u: 1 },
   { e: 'Where do you live?', h: 'אֵיפֹה אַתָּה גָּר?', u: 1 },
@@ -112,8 +119,9 @@ export const PHRASES: PhraseItem[] = [
   { e: 'What do you want to do?', h: 'מָה אַתָּה רוֹצֶה לַעֲשׂוֹת?', u: 5 },
   { e: 'Show me...', h: 'הַרְאֵה לִי...', u: 5 },
 ];
+export const PHRASES: PhraseItem[] = withLevel(PHRASES_RAW);
 
-export const SENTENCES: SentenceItem[] = [
+const SENTENCES_RAW: Omit<SentenceItem, 'level'>[] = [
   { s: 'I go to ___ every day to study.', a: 'school', opts: ['school', 'park', 'store', 'pool'], u: 1 },
   { s: 'My ___ helps me learn new things in class.', a: 'teacher', opts: ['teacher', 'friend', 'sister', 'pupil'], u: 1 },
   { s: 'I write in my ___ during the lesson.', a: 'notebook', opts: ['notebook', 'eraser', 'pencil', 'chair'], u: 1 },
@@ -165,8 +173,9 @@ export const SENTENCES: SentenceItem[] = [
   { s: 'We bake bread at the ___.', a: 'bakery', opts: ['bakery', 'hospital', 'store', 'school'], u: 5 },
   { s: 'A ___ is a big friendly animal that loves honey.', a: 'bear', opts: ['bear', 'lion', 'horse', 'wolf'], u: 5 },
 ];
+export const SENTENCES: SentenceItem[] = withLevel(SENTENCES_RAW);
 
-export const LISTEN_SENTENCES: ListenItem[] = [
+const LISTEN_SENTENCES_RAW: Omit<ListenItem, 'level'>[] = [
   { e: 'I go to school every day to study.', h: 'אֲנִי הוֹלֵך לְבֵית סֵפֶר כָּל יוֹם לִלְמוֹד.', u: 1 },
   { e: 'My teacher helps me learn new things in class.', h: 'הַמּוֹרֶה שֶׁלִּי עוֹזֵר לִי לִלְמוֹד דְּבָרִים חֲדָשִׁים בַּכִּיתָּה.', u: 1 },
   { e: 'I write in my notebook during the lesson.', h: 'אֲנִי כּוֹתֵב בַּמַּחְבֶּרֶת שֶׁלִּי בְּמַהֲלַך הַשִּׁיעוּר.', u: 1 },
@@ -204,3 +213,4 @@ export const LISTEN_SENTENCES: ListenItem[] = [
   { e: 'The sun rises in the east and sets in the west.', h: 'הַשֶּׁמֶשׁ עוֹלָה בַּמִּזְרָח וְשׁוֹקַעַת בַּמַּעֲרָב.', u: 5 },
   { e: 'I eat my meal with a fork and a knife.', h: 'אֲנִי אוֹכֵל אֶת הָאֲרוּחָה שֶׁלִּי עִם מַזְלֵג וְסַכִּין.', u: 5 },
 ];
+export const LISTEN_SENTENCES: ListenItem[] = withLevel(LISTEN_SENTENCES_RAW);

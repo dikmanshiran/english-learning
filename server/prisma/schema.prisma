@@ -21,6 +21,12 @@ enum MasteryLevel {
   MASTERED
 }
 
+enum Level {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
 model Parent {
   id           String         @id @default(cuid())
   email        String         @unique
@@ -47,6 +53,7 @@ model ChildProfile {
   name       String
   avatar     String        @default("🦁")
   color      String        @default("#6c3fc5")
+  level      Level         @default(INTERMEDIATE)
   totalGames Int           @default(0)
   totalStars Int           @default(0)
   createdAt  DateTime      @default(now())

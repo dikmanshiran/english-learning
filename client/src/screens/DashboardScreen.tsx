@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useProfileStore } from '../store/profileStore';
 import { getSummary, getWordStats } from '../services/statsService';
+import { LEVELS } from '../types/game';
 
 interface SessionQuestion {
   id: string;
@@ -61,7 +62,7 @@ function Stars({ count }: { count: number }) {
 }
 
 export function DashboardScreen({ profileId: initialProfileId, onBack, onLogout }: DashboardScreenProps) {
-  const { profiles } = useProfileStore();
+  const { profiles, updateProfileLevel } = useProfileStore();
   const profileList = Object.values(profiles);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(initialProfileId ?? (profileList[0]?.id ?? null));
   const profile = selectedProfileId ? profiles[selectedProfileId] : null;
@@ -151,8 +152,35 @@ export function DashboardScreen({ profileId: initialProfileId, onBack, onLogout 
 
       {/* Selected child summary */}
       {profile && (
-        <div style={{ color: 'var(--text-dim)', fontSize: '0.82rem', marginBottom: '14px' }}>
+        <div style={{ color: 'var(--text-dim)', fontSize: '0.82rem', marginBottom: '10px' }}>
           {profile.totalGames} משחקים · ⭐{profile.totalStars}
+        </div>
+      )}
+
+      {/* Level picker */}
+      {profile && (
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ color: 'var(--text-dim)', fontSize: '0.78rem', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            רמת קושי
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {LEVELS.map((lvl) => (
+              <button
+                key={lvl.id}
+                onClick={() => updateProfileLevel(profile.id, lvl.id)}
+                style={{
+                  flex: 1, padding: '8px 6px', borderRadius: '12px',
+                  border: profile.level === lvl.id ? '2px solid var(--color-primary)' : '2px solid transparent',
+                  background: profile.level === lvl.id ? 'rgba(108,63,197,0.2)' : 'var(--color-surface-1)',
+                  color: '#fff', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  fontSize: '0.8rem',
+                }}
+              >
+                <span>{lvl.icon}</span> {lvl.labelHe}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

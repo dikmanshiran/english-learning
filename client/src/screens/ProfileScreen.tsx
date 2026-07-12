@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useProfileStore } from '../store/profileStore';
 import { ParentZoneModal } from '../components/ParentZoneModal';
+import { LEVELS } from '../types/game';
 
 interface ProfileScreenProps {
   onSelectProfile: (id: string) => void;
@@ -42,7 +43,7 @@ export function ProfileScreen({ onSelectProfile, onNewPlayer, isLoggedIn, onPare
             </div>
             <div className="player-name">{u.name}</div>
             <div className="player-stats" style={{ direction: 'ltr' }}>
-              🎮 {u.totalGames} · ⭐ {u.totalStars}
+              🎮 {u.totalGames} · ⭐ {u.totalStars} · {LEVELS.find((l) => l.id === u.level)?.icon ?? '🌿'}
             </div>
           </div>
         ))}

@@ -37,34 +37,57 @@ export default function App() {
 
   const fireConfetti = useCallback(() => setConfettiTrigger((n) => n + 1), []);
 
+  // Pushes a browser history entry so the back/forward buttons work like
+  // in-app navigation. `replace` is used only for the initial screen chosen
+  // on mount, so browser-back from that first screen exits the app.
+  const navigate = useCallback((next: Screen, opts?: { replace?: boolean }) => {
+    if (opts?.replace) {
+      window.history.replaceState({ screen: next }, '', `#${next}`);
+    } else {
+      window.history.pushState({ screen: next }, '', `#${next}`);
+    }
+    setScreen(next);
+  }, []);
+
+  // Browser back/forward fires this — read the screen out of history state
+  // and apply it directly (not via `navigate`, which would push a new entry).
+  useEffect(() => {
+    function handlePopState(event: PopStateEvent) {
+      const next = (event.state?.screen as Screen | undefined) ?? 'landing';
+      setScreen(next);
+    }
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // On mount: try silent token refresh
   useEffect(() => {
     refreshToken().then((ok) => {
       if (ok) {
-        loadServerProfiles().then(() => setScreen('profile'));
+        loadServerProfiles().then(() => navigate('profile', { replace: true }));
       } else {
         loadLocalProfiles();
-        setScreen('landing');
+        navigate('landing', { replace: true });
       }
     });
   }, []);
 
   async function handleLoginSuccess() {
     await loadServerProfiles();
-    setScreen('profile');
+    navigate('profile');
   }
 
   async function handleLogout() {
     try { await logout(); } catch { clearAuth(); }
     clearProfiles();
     loadLocalProfiles();
-    setScreen('landing');
+    navigate('landing');
   }
 
   function handleSelectProfile(id: string) {
     selectProfile(id);
     loadWordStats(id); // load adaptive weights for this child
-    setScreen('home');
+    navigate('home');
   }
 
   function handleStart() {
@@ -85,7 +108,7 @@ export default function App() {
     }
     resetGame();
     setQuestions(qs);
-    setScreen('game');
+    navigate('game');
   }
 
   async function handleResults() {
@@ -136,7 +159,7 @@ export default function App() {
       fireConfetti();
     }
 
-    setScreen('results');
+    navigate('results');
   }
 
   return (
@@ -150,14 +173,14 @@ export default function App() {
             <p>למד אנגלית, מילה אחת בכל פעם!</p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '340px', margin: '0 auto', padding: '0 20px' }}>
-            <button className="form-btn primary" style={{ fontSize: '1.1rem', padding: '16px' }} onClick={() => setScreen('login')}>
+            <button className="form-btn primary" style={{ fontSize: '1.1rem', padding: '16px' }} onClick={() => navigate('login')}>
               🔐 כניסה
             </button>
-            <button className="form-btn ghost" style={{ fontSize: '1.1rem', padding: '16px' }} onClick={() => setScreen('register')}>
+            <button className="form-btn ghost" style={{ fontSize: '1.1rem', padding: '16px' }} onClick={() => navigate('register')}>
               📝 יצירת חשבון
             </button>
             <div style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: '.85rem', margin: '4px 0' }}>— או —</div>
-            <button className="form-btn ghost" style={{ fontSize: '1rem', padding: '14px' }} onClick={() => { loadLocalProfiles(); setScreen('profile'); }}>
+            <button className="form-btn ghost" style={{ fontSize: '1rem', padding: '14px' }} onClick={() => { loadLocalProfiles(); navigate('profile'); }}>
               👤 שחק כאורח
             </button>
           </div>
@@ -167,41 +190,41 @@ export default function App() {
       {screen === 'login' && (
         <LoginScreen
           onSuccess={handleLoginSuccess}
-          onBack={() => setScreen('landing')}
-          onRegister={() => setScreen('register')}
+          onBack={() => navigate('landing')}
+          onRegister={() => navigate('register')}
         />
       )}
 
       {screen === 'register' && (
         <RegisterScreen
           onSuccess={handleLoginSuccess}
-          onBack={() => setScreen('landing')}
+          onBack={() => navigate('landing')}
         />
       )}
 
       {screen === 'profile' && (
         <ProfileScreen
           onSelectProfile={handleSelectProfile}
-          onNewPlayer={() => setScreen('newUser')}
+          onNewPlayer={() => navigate('newUser')}
           isLoggedIn={isLoggedIn}
-          onParentZone={() => { setDashboardProfileId(null); setScreen('dashboard'); }}
+          onParentZone={() => { setDashboardProfileId(null); navigate('dashboard'); }}
         />
       )}
 
       {screen === 'dashboard' && (
         <DashboardScreen
           profileId={dashboardProfileId}
-          onBack={() => setScreen('profile')}
+          onBack={() => navigate('profile')}
           onLogout={handleLogout}
         />
       )}
 
       {screen === 'newUser' && (
         <NewUserScreen
-          onBack={() => setScreen('profile')}
+          onBack={() => navigate('profile')}
           onCreated={(id) => {
             selectProfile(id);
-            setScreen('home');
+            navigate('home');
           }}
         />
       )}
@@ -209,28 +232,28 @@ export default function App() {
       {screen === 'home' && (
         <HomeScreen
           onStartVocab={handleStart}
-          onStartExercises={() => setScreen('exercises')}
-          onSwitchPlayer={() => setScreen('profile')}
+          onStartExercises={() => navigate('exercises')}
+          onSwitchPlayer={() => navigate('profile')}
         />
       )}
 
       {screen === 'exercises' && (
         <ExercisesScreen
-          onHome={() => setScreen('home')}
+          onHome={() => navigate('home')}
           onResults={(score, total) => {
             setExercisesResult({ score, total });
             const pct = total > 0 ? score / total : 0;
             if (pct >= 0.9) { fireConfetti(); setTimeout(fireConfetti, 400); }
             else if (pct >= 0.7) { fireConfetti(); }
-            setScreen('exercises-results');
+            navigate('exercises-results');
           }}
         />
       )}
 
       {screen === 'exercises-results' && exercisesResult && (
         <ResultsScreen
-          onPlayAgain={() => setScreen('exercises')}
-          onHome={() => setScreen('home')}
+          onPlayAgain={() => navigate('exercises')}
+          onHome={() => navigate('home')}
           overrideScore={exercisesResult.score}
           overrideTotal={exercisesResult.total}
         />
@@ -238,7 +261,7 @@ export default function App() {
 
       {screen === 'game' && (
         <GameScreen
-          onHome={() => setScreen('home')}
+          onHome={() => navigate('home')}
           onResults={handleResults}
           onConfetti={fireConfetti}
         />
@@ -247,7 +270,7 @@ export default function App() {
       {screen === 'results' && (
         <ResultsScreen
           onPlayAgain={handleStart}
-          onHome={() => setScreen('home')}
+          onHome={() => navigate('home')}
         />
       )}
     </div>

@@ -1,6 +1,10 @@
-export type QuestionKind = 'e2h' | 'h2e' | 'sentence' | 'listen';
+export type QuestionKind = 'e2h' | 'h2e' | 'sentence' | 'listen' | 'letter-choice' | 'letter-type';
 export type MasteryLevel = 'UNSEEN' | 'STRUGGLING' | 'LEARNING' | 'MASTERED';
 export type Level = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+
+// Beginner-only folder unit ids — see UNITS below.
+export const LETTERS_UNIT_ID = 101;
+export const FIRST_WORDS_UNIT_ID = 102;
 
 export const LEVELS: { id: Level; label: string; labelHe: string; icon: string }[] = [
   { id: 'BEGINNER', label: 'Beginner', labelHe: 'מתחיל', icon: '🌱' },
@@ -34,6 +38,15 @@ export interface ListenItem {
   e: string;
   h: string;
   u: number;
+  level: Level;
+}
+
+export interface LetterItem {
+  letter: string;  // uppercase form, e.g. 'A'
+  lower: string;   // lowercase form, e.g. 'a'
+  word: string;    // example word starting with the letter, e.g. 'Apple'
+  emoji: string;
+  hebrew: string;  // Hebrew translation of the example word
   level: Level;
 }
 
@@ -75,6 +88,7 @@ export interface Unit {
   id: number;
   name: string;
   icon: string;
+  level: Level;
 }
 
 export const AVATARS = ['🦁', '🐯', '🐧', '🦊', '🐸', '🐼', '🦄', '🐙', '🦋', '🦕'];
@@ -84,9 +98,11 @@ export const AVATAR_COLORS = [
 ];
 
 export const UNITS: Unit[] = [
-  { id: 1, name: 'At School', icon: '🏫' },
-  { id: 2, name: "Let's Play", icon: '⚽' },
-  { id: 3, name: 'Animals', icon: '🐘' },
-  { id: 4, name: 'Be Careful!', icon: '⚠️' },
-  { id: 5, name: 'Work Together', icon: '🤝' },
+  { id: 1, name: 'At School', icon: '🏫', level: 'INTERMEDIATE' },
+  { id: 2, name: "Let's Play", icon: '⚽', level: 'INTERMEDIATE' },
+  { id: 3, name: 'Animals', icon: '🐘', level: 'INTERMEDIATE' },
+  { id: 4, name: 'Be Careful!', icon: '⚠️', level: 'INTERMEDIATE' },
+  { id: 5, name: 'Work Together', icon: '🤝', level: 'INTERMEDIATE' },
+  { id: LETTERS_UNIT_ID, name: 'Letters', icon: '🔤', level: 'BEGINNER' },
+  { id: FIRST_WORDS_UNIT_ID, name: 'First Words', icon: '⭐', level: 'BEGINNER' },
 ];

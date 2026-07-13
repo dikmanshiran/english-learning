@@ -14,8 +14,10 @@ import { useProfileStore } from './store/profileStore';
 import { useAuthStore } from './store/authStore';
 import { useBuildQuestions } from './hooks/useGame';
 import { useQuestionPool } from './hooks/useQuestionPool';
+import { useBuildLetterQuestions, useBuildFirstWordsQuestions } from './hooks/useBeginnerGame';
 import { refreshToken, logout } from './services/authService';
 import { saveSession } from './services/sessionService';
+import { LETTERS_UNIT_ID, FIRST_WORDS_UNIT_ID } from './types/game';
 
 type Screen = 'landing' | 'login' | 'register' | 'profile' | 'newUser' | 'home' | 'game' | 'results' | 'dashboard' | 'exercises' | 'exercises-results';
 
@@ -29,6 +31,8 @@ export default function App() {
   const { selectedUnits, questionCount, setQuestions, resetGame } = useGameStore();
   const { selectProfile, updateProfileStats, currentProfile, loadServerProfiles, loadLocalProfiles, loadWordStats, clearProfiles, isServerBacked, wordStats } = useProfileStore();
   const buildQuestions = useBuildQuestions();
+  const buildLetterQuestions = useBuildLetterQuestions();
+  const buildFirstWordsQuestions = useBuildFirstWordsQuestions();
   const pool = useQuestionPool(selectedUnits, currentProfile?.level ?? 'INTERMEDIATE');
 
   const fireConfetti = useCallback(() => setConfettiTrigger((n) => n + 1), []);
@@ -64,7 +68,17 @@ export default function App() {
   }
 
   function handleStart() {
-    const qs = buildQuestions(pool, questionCount, selectedUnits, wordStats);
+    // Read the store directly rather than the destructured `selectedUnits` —
+    // HomeScreen's folder pick calls setSelectedUnits() and onStartVocab() in
+    // the same tick, before this component re-renders with the new value.
+    const liveSelectedUnits = useGameStore.getState().selectedUnits;
+    const folder = liveSelectedUnits[0];
+    const qs =
+      folder === LETTERS_UNIT_ID
+        ? buildLetterQuestions(questionCount, wordStats)
+        : folder === FIRST_WORDS_UNIT_ID
+        ? buildFirstWordsQuestions(questionCount, wordStats)
+        : buildQuestions(pool, questionCount, liveSelectedUnits, wordStats);
     if (qs.length === 0) {
       alert('אין שאלות ליחידות שנבחרו. בחר יחידות נוספות!');
       return;

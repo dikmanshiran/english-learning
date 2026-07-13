@@ -276,6 +276,30 @@ body {
   pointer-events: none;
 }
 
+/* ── LETTER TYPING ── */
+.letter-answer-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+}
+.letter-input {
+  width: 80px;
+  height: 80px;
+  font-size: 2.5rem;
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+  border-radius: 16px;
+  border: 2px solid var(--card2);
+  background: var(--card);
+  color: var(--text);
+}
+.letter-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
 /* ── FEEDBACK ── */
 .feedback {
   text-align: center;

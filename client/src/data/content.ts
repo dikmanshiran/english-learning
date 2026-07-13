@@ -1,10 +1,40 @@
-import { VocabItem, PhraseItem, SentenceItem, ListenItem, Level } from '../types/game';
+import { VocabItem, PhraseItem, SentenceItem, ListenItem, Level, FIRST_WORDS_UNIT_ID } from '../types/game';
 
-// All hand-authored content below is Intermediate. Beginner/Advanced sets can be
-// added later as separate RAW arrays passed through withLevel with a different level.
+// All hand-authored content below is Intermediate unless passed a different
+// level explicitly (see BEGINNER_VOCAB_RAW below).
 function withLevel<T extends object>(items: T[], level: Level = 'INTERMEDIATE'): (T & { level: Level })[] {
   return items.map((item) => ({ ...item, level }));
 }
+
+// Beginner "First Words" folder — simple, from-scratch categories, independent
+// of the Intermediate units above. Kept in its own pool so the beginner game
+// never pulls in harder distractor words.
+const BEGINNER_VOCAB_RAW: Omit<VocabItem, 'level'>[] = [
+  // Colors
+  { e: 'red', h: 'אָדוֹם', u: FIRST_WORDS_UNIT_ID }, { e: 'blue', h: 'כָּחוֹל', u: FIRST_WORDS_UNIT_ID },
+  { e: 'green', h: 'יָרוֹק', u: FIRST_WORDS_UNIT_ID }, { e: 'yellow', h: 'צָהוֹב', u: FIRST_WORDS_UNIT_ID },
+  { e: 'orange', h: 'כָּתוֹם', u: FIRST_WORDS_UNIT_ID }, { e: 'black', h: 'שָׁחוֹר', u: FIRST_WORDS_UNIT_ID },
+  { e: 'white', h: 'לָבָן', u: FIRST_WORDS_UNIT_ID }, { e: 'pink', h: 'וָרוֹד', u: FIRST_WORDS_UNIT_ID },
+  // Numbers
+  { e: 'one', h: 'אֶחָד', u: FIRST_WORDS_UNIT_ID }, { e: 'two', h: 'שְׁתַּיִים', u: FIRST_WORDS_UNIT_ID },
+  { e: 'three', h: 'שָׁלוֹשׁ', u: FIRST_WORDS_UNIT_ID }, { e: 'four', h: 'אַרְבַּע', u: FIRST_WORDS_UNIT_ID },
+  { e: 'five', h: 'חָמֵשׁ', u: FIRST_WORDS_UNIT_ID }, { e: 'six', h: 'שֵׁשׁ', u: FIRST_WORDS_UNIT_ID },
+  { e: 'seven', h: 'שֶׁבַע', u: FIRST_WORDS_UNIT_ID }, { e: 'eight', h: 'שְׁמוֹנֶה', u: FIRST_WORDS_UNIT_ID },
+  { e: 'nine', h: 'תֵּשַׁע', u: FIRST_WORDS_UNIT_ID }, { e: 'ten', h: 'עֶשֶׂר', u: FIRST_WORDS_UNIT_ID },
+  // Family
+  { e: 'mom', h: 'אִמָּא', u: FIRST_WORDS_UNIT_ID }, { e: 'dad', h: 'אַבָּא', u: FIRST_WORDS_UNIT_ID },
+  { e: 'brother', h: 'אָח', u: FIRST_WORDS_UNIT_ID }, { e: 'sister', h: 'אָחוֹת', u: FIRST_WORDS_UNIT_ID },
+  { e: 'baby', h: 'תִּינוֹק', u: FIRST_WORDS_UNIT_ID }, { e: 'grandma', h: 'סַבְתָא', u: FIRST_WORDS_UNIT_ID },
+  { e: 'grandpa', h: 'סַבָּא', u: FIRST_WORDS_UNIT_ID },
+  // Animals
+  { e: 'dog', h: 'כֶּלֶב', u: FIRST_WORDS_UNIT_ID }, { e: 'cat', h: 'חָתוּל', u: FIRST_WORDS_UNIT_ID },
+  { e: 'bird', h: 'צִיפּוֹר', u: FIRST_WORDS_UNIT_ID }, { e: 'fish', h: 'דָּג', u: FIRST_WORDS_UNIT_ID },
+  { e: 'cow', h: 'פָּרָה', u: FIRST_WORDS_UNIT_ID }, { e: 'duck', h: 'בַּרְוָז', u: FIRST_WORDS_UNIT_ID },
+  // Body parts
+  { e: 'eyes', h: 'עֵינַיִים', u: FIRST_WORDS_UNIT_ID }, { e: 'nose', h: 'אַף', u: FIRST_WORDS_UNIT_ID },
+  { e: 'mouth', h: 'פֶּה', u: FIRST_WORDS_UNIT_ID }, { e: 'ears', h: 'אוֹזְנַיִים', u: FIRST_WORDS_UNIT_ID },
+  { e: 'hands', h: 'יָדַיִים', u: FIRST_WORDS_UNIT_ID }, { e: 'hair', h: 'שֵׂעָר', u: FIRST_WORDS_UNIT_ID },
+];
 
 const VOCAB_RAW: Omit<VocabItem, 'level'>[] = [
   // Unit 1 – At School
@@ -90,7 +120,7 @@ const VOCAB_RAW: Omit<VocabItem, 'level'>[] = [
   { e: 'left', h: 'שְׂמֹאל', u: 5 }, { e: 'north', h: 'צָפוֹן', u: 5 }, { e: 'right', h: 'יָמִין', u: 5 },
   { e: 'south', h: 'דָּרוֹם', u: 5 }, { e: 'west', h: 'מַעֲרָב', u: 5 }, { e: 'east', h: 'מִזְרָח', u: 5 },
 ];
-export const VOCAB: VocabItem[] = withLevel(VOCAB_RAW);
+export const VOCAB: VocabItem[] = [...withLevel(VOCAB_RAW), ...withLevel(BEGINNER_VOCAB_RAW, 'BEGINNER')];
 
 const PHRASES_RAW: Omit<PhraseItem, 'level'>[] = [
   { e: "What's your name?", h: 'מַה שִׁמְךָ?', u: 1 },

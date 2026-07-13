@@ -43,6 +43,7 @@ export function GameScreen({ onHome, onResults, onConfetti }: GameScreenProps) {
   const [feedback, setFeedback] = useState<{ text: string; type: 'correct' | 'wrong' } | null>(null);
   const [optionStates, setOptionStates] = useState<Record<string, 'default' | 'correct' | 'wrong' | 'disabled'>>({});
   const [showNext, setShowNext] = useState(false);
+  const [typedValue, setTypedValue] = useState('');
 
   const q = questions[currentQ];
 
@@ -54,6 +55,7 @@ export function GameScreen({ onHome, onResults, onConfetti }: GameScreenProps) {
     setShowNext(false);
     setShake(false);
     setPlaying(false);
+    setTypedValue('');
     if (q.kind === 'listen') {
       const timer = setTimeout(() => triggerSpeak(), 400);
       return () => clearTimeout(timer);
@@ -119,6 +121,7 @@ export function GameScreen({ onHome, onResults, onConfetti }: GameScreenProps) {
           return next;
         });
         setFeedback(null);
+        setTypedValue('');
         markResetting(false);
       }, 800);
 
@@ -134,6 +137,11 @@ export function GameScreen({ onHome, onResults, onConfetti }: GameScreenProps) {
         setShowNext(true);
       }
     }
+  }
+
+  function handleTypedSubmit() {
+    if (answered || resetting || !typedValue.trim()) return;
+    handleAnswer(typedValue.trim().toUpperCase());
   }
 
   function handleNext() {
@@ -175,17 +183,39 @@ export function GameScreen({ onHome, onResults, onConfetti }: GameScreenProps) {
 
       <QuestionCard question={q} shake={shake} playing={playing} onPlay={triggerSpeak} />
 
-      <div className="options-grid">
-        {q.options.map((opt) => (
-          <OptionButton
-            key={opt}
-            text={opt}
-            isHebrew={isHebrewOptions}
-            state={optionStates[opt] || 'default'}
-            onClick={() => handleAnswer(opt)}
+      {q.kind === 'letter-type' ? (
+        <div className="letter-answer-row">
+          <input
+            className="letter-input"
+            type="text"
+            maxLength={1}
+            value={typedValue}
+            onChange={(e) => setTypedValue(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleTypedSubmit()}
+            disabled={answered || resetting}
+            autoFocus
           />
-        ))}
-      </div>
+          <button
+            className="form-btn primary"
+            onClick={handleTypedSubmit}
+            disabled={answered || resetting || !typedValue.trim()}
+          >
+            Check ✓
+          </button>
+        </div>
+      ) : (
+        <div className="options-grid">
+          {q.options.map((opt) => (
+            <OptionButton
+              key={opt}
+              text={opt}
+              isHebrew={isHebrewOptions}
+              state={optionStates[opt] || 'default'}
+              onClick={() => handleAnswer(opt)}
+            />
+          ))}
+        </div>
+      )}
 
       {feedback && (
         <div className={`feedback show ${feedback.type}`}>{feedback.text}</div>

@@ -16,6 +16,10 @@ export function QuestionCard({ question: q, shake, playing, onPlay }: QuestionCa
       ? '🇮🇱 → 🇬🇧 Translate to English'
       : q.kind === 'listen'
       ? '🎧 Listen & Choose Hebrew'
+      : q.kind === 'letter-choice'
+      ? '🔤 Recognize the Letter'
+      : q.kind === 'letter-type'
+      ? '✍️ Write the Letter'
       : '✏️ Complete the Sentence';
 
   return (
@@ -39,6 +43,13 @@ export function QuestionCard({ question: q, shake, playing, onPlay }: QuestionCa
         <div className="q-word">
           <ListenButton playing={playing} onPlay={onPlay} />
         </div>
+      ) : q.kind === 'letter-choice' || q.kind === 'letter-type' ? (
+        <>
+          <div className="q-word" style={{ fontSize: q.question.length === 1 ? '4rem' : undefined }}>
+            {q.question}
+          </div>
+          <div className="q-hint">{q.hintText}</div>
+        </>
       ) : (
         <>
           <div className={`q-word${q.kind === 'h2e' ? ' hebrew' : ''}`}>{q.question}</div>

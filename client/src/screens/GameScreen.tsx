@@ -44,6 +44,7 @@ export function GameScreen({ onHome, onResults, onConfetti }: GameScreenProps) {
   const [optionStates, setOptionStates] = useState<Record<string, 'default' | 'correct' | 'wrong' | 'disabled'>>({});
   const [showNext, setShowNext] = useState(false);
   const [typedValue, setTypedValue] = useState('');
+  const [screenFlash, setScreenFlash] = useState<'correct' | 'wrong' | null>(null);
 
   const q = questions[currentQ];
 
@@ -56,6 +57,7 @@ export function GameScreen({ onHome, onResults, onConfetti }: GameScreenProps) {
     setShake(false);
     setPlaying(false);
     setTypedValue('');
+    setScreenFlash(null);
     if (q.kind === 'listen') {
       const timer = setTimeout(() => triggerSpeak(), 400);
       return () => clearTimeout(timer);
@@ -97,7 +99,9 @@ export function GameScreen({ onHome, onResults, onConfetti }: GameScreenProps) {
         type: 'correct',
       });
 
-      if (newStreak === 5 || (score + bonus) % 10 === 0) onConfetti();
+      setScreenFlash('correct');
+      onConfetti();
+      if (newStreak === 5 || (score + bonus) % 10 === 0) setTimeout(onConfetti, 300);
       playTone(true);
       setShowNext(true);
     } else {
@@ -110,6 +114,7 @@ export function GameScreen({ onHome, onResults, onConfetti }: GameScreenProps) {
       markResetting(true);
       setOptionStates((prev) => ({ ...prev, [chosen]: 'wrong' }));
       setFeedback({ text: '❌ Not quite — try again!', type: 'wrong' });
+      setScreenFlash('wrong');
       setShake(true);
       playTone(false);
 
@@ -121,6 +126,7 @@ export function GameScreen({ onHome, onResults, onConfetti }: GameScreenProps) {
           return next;
         });
         setFeedback(null);
+        setScreenFlash(null);
         setTypedValue('');
         markResetting(false);
       }, 800);
@@ -160,6 +166,7 @@ export function GameScreen({ onHome, onResults, onConfetti }: GameScreenProps) {
 
   return (
     <div className="screen active">
+      {screenFlash && <div className={`screen-flash ${screenFlash}`} />}
       <div className="game-header">
         <div>
           <button className="back-btn" onClick={onHome}>

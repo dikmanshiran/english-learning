@@ -7,7 +7,7 @@ import { validate } from '../middleware/validate';
 const router = Router();
 
 const questionSchema = z.object({
-  kind: z.enum(['E2H', 'H2E', 'SENTENCE', 'LISTEN']),
+  kind: z.enum(['E2H', 'H2E', 'SENTENCE', 'LISTEN', 'LETTER_CHOICE', 'LETTER_TYPE']),
   questionText: z.string(),
   answer: z.string(),
   chosen: z.string(),

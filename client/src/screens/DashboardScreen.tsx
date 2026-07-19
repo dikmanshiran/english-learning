@@ -42,6 +42,8 @@ const KIND_LABEL: Record<string, string> = {
   H2E: 'Hebrew→English',
   SENTENCE: 'Sentence',
   LISTEN: 'Listen',
+  LETTER_CHOICE: 'Recognize Letter',
+  LETTER_TYPE: 'Write Letter',
 };
 
 const MASTERY_EMOJI: Record<string, string> = {

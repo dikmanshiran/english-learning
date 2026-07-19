@@ -1,43 +1,10 @@
 import { useState, useCallback } from 'react';
 import { BOOK_EXERCISES, BookExercise } from '../data/bookExercises';
-import { useProfileStore, WordStat } from '../store/profileStore';
+import { useProfileStore } from '../store/profileStore';
 import { useGameStore } from '../store/gameStore';
 import { playTone } from '../hooks/useGame';
 import { filterByLevel } from '../utils/level';
-
-// ── Weighted sampling ──────────────────────────────────────────────────────
-
-function getWeight(id: string, wordStats: Record<string, WordStat>): number {
-  const stat = wordStats[id];
-  if (!stat || stat.mastery === 'UNSEEN') return 1.0;
-  if (stat.mastery === 'STRUGGLING') return 4.0;
-  if (stat.mastery === 'LEARNING') return 2.0;
-  return 0.5;
-}
-
-function weightedSample(exercises: BookExercise[], count: number, wordStats: Record<string, WordStat>): BookExercise[] {
-  const weights = exercises.map((e) => getWeight(e.id, wordStats));
-  const result: BookExercise[] = [];
-  const pool = [...exercises];
-  const poolWeights = [...weights];
-  for (let i = 0; i < Math.min(count, exercises.length); i++) {
-    const total = poolWeights.reduce((a, b) => a + b, 0);
-    let r = Math.random() * total;
-    let idx = 0;
-    for (let j = 0; j < poolWeights.length; j++) {
-      r -= poolWeights[j];
-      if (r <= 0) { idx = j; break; }
-    }
-    result.push(pool[idx]);
-    pool.splice(idx, 1);
-    poolWeights.splice(idx, 1);
-  }
-  return result;
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  return [...arr].sort(() => Math.random() - 0.5);
-}
+import { shuffle, weightedSample } from '../utils/weightedSample';
 
 // ── Hebrew instruction translations ────────────────────────────────────────
 
@@ -425,40 +392,13 @@ export function ExercisesScreen({ onHome, onResults }: ExercisesScreenProps) {
   const { wordStats, currentProfile, updateProfileStats } = useProfileStore();
   const { questionCount } = useGameStore();
   const [exercises] = useState<BookExercise[]>(() =>
-    weightedSample(filterByLevel(BOOK_EXERCISES, currentProfile?.level ?? 'INTERMEDIATE'), questionCount, wordStats)
+    weightedSample(filterByLevel(BOOK_EXERCISES, currentProfile?.level ?? 'INTERMEDIATE'), questionCount, (e) => e.id, wordStats)
   );
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState(0);
   const [results, setResults] = useState<{ id: string; firstTryCorrect: boolean }[]>([]);
 
   const current = exercises[currentIdx];
-
-  const advance = useCallback((firstTryCorrect: boolean) => {
-    const newResults = [...results, { id: current.id, firstTryCorrect }];
-    setResults(newResults);
-
-    if (currentIdx + 1 >= exercises.length) {
-      if (currentProfile) {
-        updateProfileStats(
-          currentProfile.id,
-          0,
-          newResults.map((r) => ({ questionText: r.id, firstTryCorrect: r.firstTryCorrect }))
-        );
-      }
-      onResults(score + (firstTryCorrect ? 1 : 0), exercises.length);
-    } else {
-      setCurrentIdx((i) => i + 1);
-    }
-  }, [results, current, currentIdx, exercises, score, currentProfile, updateProfileStats, onResults]);
-
-  const handleFirstWrong = useCallback(() => {
-    // score stays as-is (not incremented — already defaulting to wrong)
-  }, []);
-
-  const handleCorrect = useCallback((wasFirstTry: boolean) => {
-    if (wasFirstTry) setScore((s) => s + 1);
-    advance(wasFirstTry);
-  }, [advance]);
 
   // We need to track per-question whether first try was correct.
   // We pass two callbacks: onFirstWrong (to record it was wrong) and onCorrect.

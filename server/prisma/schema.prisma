@@ -12,6 +12,8 @@ enum QuestionKind {
   H2E
   SENTENCE
   LISTEN
+  LETTER_CHOICE
+  LETTER_TYPE
 }
 
 enum MasteryLevel {

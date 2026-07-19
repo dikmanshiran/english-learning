@@ -9,7 +9,7 @@ export interface SessionPayload {
   stars: number;
   livesLeft: number;
   questions: Array<{
-    kind: 'E2H' | 'H2E' | 'SENTENCE' | 'LISTEN';
+    kind: 'E2H' | 'H2E' | 'SENTENCE' | 'LISTEN' | 'LETTER_CHOICE' | 'LETTER_TYPE';
     questionText: string;
     answer: string;
     chosen: string;
@@ -18,12 +18,14 @@ export interface SessionPayload {
   }>;
 }
 
-function kindMap(k: string): 'E2H' | 'H2E' | 'SENTENCE' | 'LISTEN' {
+function kindMap(k: string): 'E2H' | 'H2E' | 'SENTENCE' | 'LISTEN' | 'LETTER_CHOICE' | 'LETTER_TYPE' {
   switch (k) {
     case 'e2h': return 'E2H';
     case 'h2e': return 'H2E';
     case 'sentence': return 'SENTENCE';
     case 'listen': return 'LISTEN';
+    case 'letter-choice': return 'LETTER_CHOICE';
+    case 'letter-type': return 'LETTER_TYPE';
     default: return 'E2H';
   }
 }

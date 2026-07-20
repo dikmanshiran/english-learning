@@ -30,7 +30,7 @@ interface GameState {
   markCurrentWrongLogged: () => void;
 }
 
-export const useGameStore = create<GameState>((set, get) => ({
+export const useGameStore = create<GameState>((set) => ({
   questions: [],
   currentQ: 0,
   score: 0,

@@ -55,7 +55,7 @@ export function ResultsScreen({ onPlayAgain, onHome, overrideScore, overrideTota
 
         <div className="review-section">
           {isExercisesMode ? (
-            <div className="review-title" style={{ color: pct >= 0.7 ? '#6ee7b7' : 'var(--color-accent)' }}>
+            <div className="review-title" style={{ color: pct >= 0.7 ? '#6ee7b7' : 'var(--secondary)' }}>
               {pct >= 0.9 ? '🎯 Excellent work!' : pct >= 0.7 ? '👍 Well done!' : '📚 Keep practicing!'}
             </div>
           ) : wrongAnswers.length === 0 ? (

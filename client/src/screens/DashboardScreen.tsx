@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useProfileStore } from '../store/profileStore';
 import { getSummary, getWordStats } from '../services/statsService';
-import { LEVELS } from '../types/game';
+import { LevelPicker } from '../components/LevelPicker';
 
 interface SessionQuestion {
   id: string;
@@ -99,8 +99,6 @@ export function DashboardScreen({ profileId: initialProfileId, onBack, onLogout 
     load();
   }, [selectedProfileId]);
 
-  const wrongWords = words.filter((w) => w.mastery === 'STRUGGLING' || w.wrong > 0);
-
   function formatDate(iso: string) {
     const d = new Date(iso);
     return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' }) +
@@ -111,12 +109,7 @@ export function DashboardScreen({ profileId: initialProfileId, onBack, onLogout 
     <div className="screen active" style={{ paddingBottom: '32px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <button
-          onClick={onBack}
-          style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: '1.4rem', cursor: 'pointer', padding: '4px 8px' }}
-        >
-          ←
-        </button>
+        <button className="back-btn" onClick={onBack}>← Back</button>
         <h2 style={{ margin: 0, fontSize: '1.1rem' }}>👨‍👩‍👧 אזור הורים</h2>
         {onLogout && (
           <button
@@ -140,7 +133,7 @@ export function DashboardScreen({ profileId: initialProfileId, onBack, onLogout 
               style={{
                 flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px',
                 padding: '8px 14px', borderRadius: '20px', border: 'none', cursor: 'pointer',
-                background: selectedProfileId === p.id ? 'var(--color-primary)' : 'var(--color-surface-1)',
+                background: selectedProfileId === p.id ? 'var(--primary)' : 'var(--card)',
                 color: selectedProfileId === p.id ? '#fff' : 'var(--text-dim)',
                 fontWeight: selectedProfileId === p.id ? 700 : 400,
                 fontSize: '0.9rem',
@@ -165,24 +158,7 @@ export function DashboardScreen({ profileId: initialProfileId, onBack, onLogout 
           <div style={{ color: 'var(--text-dim)', fontSize: '0.78rem', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             רמת קושי
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {LEVELS.map((lvl) => (
-              <button
-                key={lvl.id}
-                onClick={() => updateProfileLevel(profile.id, lvl.id)}
-                style={{
-                  flex: 1, padding: '8px 6px', borderRadius: '12px',
-                  border: profile.level === lvl.id ? '2px solid var(--color-primary)' : '2px solid transparent',
-                  background: profile.level === lvl.id ? 'rgba(108,63,197,0.2)' : 'var(--color-surface-1)',
-                  color: '#fff', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                  fontSize: '0.8rem',
-                }}
-              >
-                <span>{lvl.icon}</span> {lvl.labelHe}
-              </button>
-            ))}
-          </div>
+          <LevelPicker value={profile.level} onChange={(lvl) => updateProfileLevel(profile.id, lvl)} />
         </div>
       )}
 
@@ -195,7 +171,7 @@ export function DashboardScreen({ profileId: initialProfileId, onBack, onLogout 
             style={{
               flex: 1, padding: '10px', borderRadius: '12px', border: 'none',
               cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem',
-              background: tab === t ? 'var(--color-primary)' : 'var(--color-surface-1)',
+              background: tab === t ? 'var(--primary)' : 'var(--card)',
               color: tab === t ? '#fff' : 'var(--text-dim)',
               transition: 'background 0.2s',
             }}
@@ -211,7 +187,7 @@ export function DashboardScreen({ profileId: initialProfileId, onBack, onLogout 
         </div>
       )}
       {error && (
-        <div style={{ color: 'var(--color-danger)', textAlign: 'center', padding: '20px' }}>
+        <div style={{ color: 'var(--danger)', textAlign: 'center', padding: '20px' }}>
           {error}
         </div>
       )}
@@ -231,7 +207,7 @@ export function DashboardScreen({ profileId: initialProfileId, onBack, onLogout 
               <div
                 key={s.id}
                 style={{
-                  background: 'var(--color-surface-1)', borderRadius: '14px',
+                  background: 'var(--card)', borderRadius: '14px',
                   overflow: 'hidden',
                 }}
               >
@@ -253,7 +229,7 @@ export function DashboardScreen({ profileId: initialProfileId, onBack, onLogout 
                     <div style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>
                       {formatDate(s.completedAt)} · ❤️ {s.livesLeft} left
                       {wrong.length > 0 && (
-                        <span style={{ color: 'var(--color-danger)', marginLeft: '8px' }}>
+                        <span style={{ color: 'var(--danger)', marginLeft: '8px' }}>
                           · {wrong.length} missed
                         </span>
                       )}
@@ -268,7 +244,7 @@ export function DashboardScreen({ profileId: initialProfileId, onBack, onLogout 
                 {expanded && (
                   <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '12px 16px' }}>
                     {wrong.length === 0 ? (
-                      <div style={{ color: 'var(--color-success)', fontSize: '0.9rem', textAlign: 'center', padding: '8px 0' }}>
+                      <div style={{ color: 'var(--success)', fontSize: '0.9rem', textAlign: 'center', padding: '8px 0' }}>
                         🎉 Perfect score!
                       </div>
                     ) : (
@@ -282,7 +258,7 @@ export function DashboardScreen({ profileId: initialProfileId, onBack, onLogout 
                             style={{
                               background: 'rgba(239,68,68,0.08)', borderRadius: '10px',
                               padding: '10px 12px', marginBottom: '8px',
-                              borderLeft: '3px solid var(--color-danger)',
+                              borderLeft: '3px solid var(--danger)',
                             }}
                           >
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '3px' }}>
@@ -292,9 +268,9 @@ export function DashboardScreen({ profileId: initialProfileId, onBack, onLogout 
                               {q.questionText}
                             </div>
                             <div style={{ fontSize: '0.85rem' }}>
-                              <span style={{ color: 'var(--color-success)' }}>✓ {q.answer}</span>
+                              <span style={{ color: 'var(--success)' }}>✓ {q.answer}</span>
                               <span style={{ color: 'var(--text-dim)', margin: '0 6px' }}>·</span>
-                              <span style={{ color: 'var(--color-danger)' }}>✗ {q.chosen}</span>
+                              <span style={{ color: 'var(--danger)' }}>✗ {q.chosen}</span>
                             </div>
                           </div>
                         ))}
@@ -313,13 +289,13 @@ export function DashboardScreen({ profileId: initialProfileId, onBack, onLogout 
                               style={{
                                 background: 'rgba(16,185,129,0.07)', borderRadius: '10px',
                                 padding: '8px 12px', marginBottom: '6px',
-                                borderLeft: '3px solid var(--color-success)',
+                                borderLeft: '3px solid var(--success)',
                                 fontSize: '0.85rem',
                               }}
                             >
                               <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>{KIND_LABEL[q.kind]} · </span>
                               <strong>{q.questionText}</strong>
-                              <span style={{ color: 'var(--color-success)', marginLeft: '8px' }}>✓ {q.answer}</span>
+                              <span style={{ color: 'var(--success)', marginLeft: '8px' }}>✓ {q.answer}</span>
                             </div>
                           ))}
                         </div>
@@ -355,7 +331,7 @@ export function DashboardScreen({ profileId: initialProfileId, onBack, onLogout 
                   <div
                     key={w.wordKey}
                     style={{
-                      background: 'var(--color-surface-1)', borderRadius: '10px',
+                      background: 'var(--card)', borderRadius: '10px',
                       padding: '10px 14px', marginBottom: '6px',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     }}

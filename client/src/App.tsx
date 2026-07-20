@@ -240,6 +240,7 @@ export default function App() {
       {screen === 'exercises' && (
         <ExercisesScreen
           onHome={() => navigate('home')}
+          onConfetti={fireConfetti}
           onResults={(score, total) => {
             setExercisesResult({ score, total });
             const pct = total > 0 ? score / total : 0;

@@ -39,7 +39,7 @@ export function ParentZoneModal({ onSuccess, onClose }: ParentZoneModalProps) {
     >
       <div
         style={{
-          background: 'var(--color-surface-1)', borderRadius: '20px',
+          background: 'var(--card)', borderRadius: '20px',
           padding: '28px 24px', width: '100%', maxWidth: '340px',
           boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
         }}
@@ -70,7 +70,7 @@ export function ParentZoneModal({ onSuccess, onClose }: ParentZoneModalProps) {
             }}
           />
           {error && (
-            <div style={{ color: 'var(--color-danger)', fontSize: '0.85rem', textAlign: 'center' }}>
+            <div style={{ color: 'var(--danger)', fontSize: '0.85rem', textAlign: 'center' }}>
               {error}
             </div>
           )}

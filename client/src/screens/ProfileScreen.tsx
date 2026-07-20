@@ -79,7 +79,7 @@ export function ProfileScreen({ onSelectProfile, onNewPlayer, isLoggedIn, onPare
           fontSize: '0.8rem', color: 'var(--text-dim)',
         }}>
           משחק ללא שמירה ·{' '}
-          <span style={{ color: 'var(--color-primary)', textDecoration: 'underline', cursor: 'pointer' }}>
+          <span style={{ color: 'var(--primary)', textDecoration: 'underline', cursor: 'pointer' }}>
             הרשם כדי לשמור התקדמות
           </span>
         </div>

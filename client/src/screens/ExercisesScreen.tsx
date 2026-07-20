@@ -2,7 +2,8 @@ import { useState, useCallback } from 'react';
 import { BOOK_EXERCISES, BookExercise } from '../data/bookExercises';
 import { useProfileStore } from '../store/profileStore';
 import { useGameStore } from '../store/gameStore';
-import { playTone } from '../hooks/useGame';
+import { useAnswerFeedback } from '../hooks/useAnswerFeedback';
+import { OptionButton } from '../components/OptionButton';
 import { filterByLevel } from '../utils/level';
 import { shuffle, weightedSample } from '../utils/weightedSample';
 
@@ -32,127 +33,70 @@ const INSTRUCTION_HE: Record<string, string> = {
 // ── Exercise props ─────────────────────────────────────────────────────────
 // onFirstWrong: called once when the child gets it wrong the first time (for scoring)
 // onCorrect:    called when the child eventually answers correctly (advance)
+// onFlash:      triggers the shared full-screen correct/wrong flash (see ExercisesScreen)
 
 interface ExerciseProps {
   exercise: BookExercise;
   onFirstWrong: () => void;
   onCorrect: () => void;
+  onConfetti: () => void;
+  onFlash: (type: 'correct' | 'wrong') => void;
+}
+
+function optionState(opt: string, wrongChoice: string | null, correctChoice: string | null) {
+  if (opt === correctChoice) return 'correct';
+  if (opt === wrongChoice) return 'wrong';
+  if (correctChoice) return 'disabled';
+  return 'default';
 }
 
 // ── Multiple choice ────────────────────────────────────────────────────────
 
-function MultipleChoiceExercise({ exercise, onFirstWrong, onCorrect }: ExerciseProps) {
-  const [wrongChoice, setWrongChoice] = useState<string | null>(null);
-  const [correctChoice, setCorrectChoice] = useState<string | null>(null);
-  const [resetting, setResetting] = useState(false);
-  const [firstTry, setFirstTry] = useState(true);
+function MultipleChoiceExercise({ exercise, onFirstWrong, onCorrect, onConfetti, onFlash }: ExerciseProps) {
   const [shuffledOptions] = useState(() => shuffle(exercise.options));
-
-  function handleChoice(opt: string) {
-    if (resetting || correctChoice) return;
-    if (opt === exercise.answer) {
-      playTone(true);
-      setCorrectChoice(opt);
-      setTimeout(onCorrect, 700);
-    } else {
-      if (firstTry) { onFirstWrong(); setFirstTry(false); }
-      playTone(false);
-      setWrongChoice(opt);
-      setResetting(true);
-      setTimeout(() => { setWrongChoice(null); setResetting(false); }, 800);
-    }
-  }
+  const { wrongChoice, correctChoice, submit } = useAnswerFeedback({ onFirstWrong, onCorrect, onConfetti, onFlash });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      {shuffledOptions.map((opt) => {
-        let bg = 'var(--color-surface-1)';
-        let border = '2px solid transparent';
-        if (opt === wrongChoice) { bg = 'rgba(239,68,68,0.25)'; border = '2px solid var(--color-danger)'; }
-        if (opt === correctChoice) { bg = 'rgba(16,185,129,0.25)'; border = '2px solid var(--color-success)'; }
-        return (
-          <button key={opt} onClick={() => handleChoice(opt)} style={{
-            padding: '14px 16px', borderRadius: '14px', border, background: bg,
-            color: '#fff', fontSize: '1rem', textAlign: 'left',
-            cursor: resetting || correctChoice ? 'default' : 'pointer',
-            transition: 'background 0.2s, border 0.2s',
-          }}>
-            {opt}
-          </button>
-        );
-      })}
+      {shuffledOptions.map((opt) => (
+        <OptionButton
+          key={opt}
+          text={opt}
+          isHebrew={false}
+          state={optionState(opt, wrongChoice, correctChoice)}
+          onClick={() => submit(opt, opt === exercise.answer)}
+        />
+      ))}
     </div>
   );
 }
 
 // ── True / False ───────────────────────────────────────────────────────────
 
-function TrueFalseExercise({ exercise, onFirstWrong, onCorrect }: ExerciseProps) {
-  const [wrongChoice, setWrongChoice] = useState<string | null>(null);
-  const [correctChoice, setCorrectChoice] = useState<string | null>(null);
-  const [resetting, setResetting] = useState(false);
-  const [firstTry, setFirstTry] = useState(true);
-
-  function handleChoice(opt: string) {
-    if (resetting || correctChoice) return;
-    if (opt === exercise.answer) {
-      playTone(true);
-      setCorrectChoice(opt);
-      setTimeout(onCorrect, 700);
-    } else {
-      if (firstTry) { onFirstWrong(); setFirstTry(false); }
-      playTone(false);
-      setWrongChoice(opt);
-      setResetting(true);
-      setTimeout(() => { setWrongChoice(null); setResetting(false); }, 800);
-    }
-  }
+function TrueFalseExercise({ exercise, onFirstWrong, onCorrect, onConfetti, onFlash }: ExerciseProps) {
+  const { wrongChoice, correctChoice, submit } = useAnswerFeedback({ onFirstWrong, onCorrect, onConfetti, onFlash });
 
   return (
-    <div style={{ display: 'flex', gap: '12px' }}>
-      {['True', 'False'].map((opt) => {
-        const isWrong = opt === wrongChoice;
-        const isCorrect = opt === correctChoice;
-        return (
-          <button key={opt} onClick={() => handleChoice(opt)} style={{
-            flex: 1, padding: '18px', borderRadius: '14px',
-            border: `2px solid ${isCorrect ? 'var(--color-success)' : isWrong ? 'var(--color-danger)' : 'rgba(255,255,255,0.15)'}`,
-            background: isCorrect ? 'rgba(16,185,129,0.25)' : isWrong ? 'rgba(239,68,68,0.25)' : 'var(--color-surface-1)',
-            color: '#fff', fontSize: '1.1rem', fontWeight: 700,
-            cursor: resetting || correctChoice ? 'default' : 'pointer', transition: 'all 0.2s',
-          }}>
-            {opt === 'True' ? '✅ True' : '❌ False'}
-          </button>
-        );
-      })}
+    <div className="options-grid">
+      {['True', 'False'].map((opt) => (
+        <OptionButton
+          key={opt}
+          text={opt === 'True' ? '✅ True' : '❌ False'}
+          isHebrew={false}
+          state={optionState(opt, wrongChoice, correctChoice)}
+          onClick={() => submit(opt, opt === exercise.answer)}
+        />
+      ))}
     </div>
   );
 }
 
 // ── Fill blank ─────────────────────────────────────────────────────────────
 
-function FillBlankExercise({ exercise, onFirstWrong, onCorrect }: ExerciseProps) {
-  const [wrongChoice, setWrongChoice] = useState<string | null>(null);
-  const [correctChoice, setCorrectChoice] = useState<string | null>(null);
-  const [resetting, setResetting] = useState(false);
-  const [firstTry, setFirstTry] = useState(true);
+function FillBlankExercise({ exercise, onFirstWrong, onCorrect, onConfetti, onFlash }: ExerciseProps) {
   const [shuffledOptions] = useState(() => shuffle(exercise.options));
+  const { wrongChoice, correctChoice, submit } = useAnswerFeedback({ onFirstWrong, onCorrect, onConfetti, onFlash });
   const parts = exercise.question.split('___');
-
-  function handleChoice(opt: string) {
-    if (resetting || correctChoice) return;
-    if (opt === exercise.answer) {
-      playTone(true);
-      setCorrectChoice(opt);
-      setTimeout(onCorrect, 700);
-    } else {
-      if (firstTry) { onFirstWrong(); setFirstTry(false); }
-      playTone(false);
-      setWrongChoice(opt);
-      setResetting(true);
-      setTimeout(() => { setWrongChoice(null); setResetting(false); }, 800);
-    }
-  }
 
   return (
     <div>
@@ -162,8 +106,8 @@ function FillBlankExercise({ exercise, onFirstWrong, onCorrect }: ExerciseProps)
       }}>
         {parts[0]}
         <span style={{
-          display: 'inline-block', minWidth: '80px', borderBottom: `2px solid ${correctChoice ? 'var(--color-success)' : 'var(--color-accent)'}`,
-          textAlign: 'center', color: correctChoice ? 'var(--color-success)' : 'var(--text-dim)', margin: '0 4px',
+          display: 'inline-block', minWidth: '80px', borderBottom: `2px solid ${correctChoice ? 'var(--success)' : 'var(--secondary)'}`,
+          textAlign: 'center', color: correctChoice ? 'var(--success)' : 'var(--text-dim)', margin: '0 4px',
           transition: 'all 0.2s',
         }}>
           {correctChoice || '___'}
@@ -171,21 +115,15 @@ function FillBlankExercise({ exercise, onFirstWrong, onCorrect }: ExerciseProps)
         {parts[1]}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {shuffledOptions.map((opt) => {
-          const isWrong = opt === wrongChoice;
-          const isCorrect = opt === correctChoice;
-          return (
-            <button key={opt} onClick={() => handleChoice(opt)} style={{
-              padding: '12px 16px', borderRadius: '12px',
-              border: `2px solid ${isCorrect ? 'var(--color-success)' : isWrong ? 'var(--color-danger)' : 'transparent'}`,
-              background: isCorrect ? 'rgba(16,185,129,0.25)' : isWrong ? 'rgba(239,68,68,0.25)' : 'var(--color-surface-1)',
-              color: '#fff', fontSize: '0.95rem', textAlign: 'left',
-              cursor: resetting || correctChoice ? 'default' : 'pointer', transition: 'all 0.2s',
-            }}>
-              {opt}
-            </button>
-          );
-        })}
+        {shuffledOptions.map((opt) => (
+          <OptionButton
+            key={opt}
+            text={opt}
+            isHebrew={false}
+            state={optionState(opt, wrongChoice, correctChoice)}
+            onClick={() => submit(opt, opt === exercise.answer)}
+          />
+        ))}
       </div>
     </div>
   );
@@ -193,97 +131,49 @@ function FillBlankExercise({ exercise, onFirstWrong, onCorrect }: ExerciseProps)
 
 // ── Odd one out ────────────────────────────────────────────────────────────
 
-function OddOneOutExercise({ exercise, onFirstWrong, onCorrect }: ExerciseProps) {
-  const [wrongChoice, setWrongChoice] = useState<string | null>(null);
-  const [correctChoice, setCorrectChoice] = useState<string | null>(null);
-  const [resetting, setResetting] = useState(false);
-  const [firstTry, setFirstTry] = useState(true);
-
-  function handleChoice(opt: string) {
-    if (resetting || correctChoice) return;
-    if (opt === exercise.answer) {
-      playTone(true);
-      setCorrectChoice(opt);
-      setTimeout(onCorrect, 700);
-    } else {
-      if (firstTry) { onFirstWrong(); setFirstTry(false); }
-      playTone(false);
-      setWrongChoice(opt);
-      setResetting(true);
-      setTimeout(() => { setWrongChoice(null); setResetting(false); }, 800);
-    }
-  }
+function OddOneOutExercise({ exercise, onFirstWrong, onCorrect, onConfetti, onFlash }: ExerciseProps) {
+  const { wrongChoice, correctChoice, submit } = useAnswerFeedback({ onFirstWrong, onCorrect, onConfetti, onFlash });
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-      {exercise.options.map((opt) => {
-        const isWrong = opt === wrongChoice;
-        const isCorrect = opt === correctChoice;
-        return (
-          <button key={opt} onClick={() => handleChoice(opt)} style={{
-            padding: '16px', borderRadius: '14px',
-            border: `2px solid ${isCorrect ? 'var(--color-success)' : isWrong ? 'var(--color-danger)' : 'transparent'}`,
-            background: isCorrect ? 'rgba(16,185,129,0.25)' : isWrong ? 'rgba(239,68,68,0.25)' : 'var(--color-surface-1)',
-            color: '#fff', fontSize: '1rem', fontWeight: 600,
-            cursor: resetting || correctChoice ? 'default' : 'pointer', transition: 'all 0.2s',
-          }}>
-            {opt}
-          </button>
-        );
-      })}
+    <div className="options-grid">
+      {exercise.options.map((opt) => (
+        <OptionButton
+          key={opt}
+          text={opt}
+          isHebrew={false}
+          state={optionState(opt, wrongChoice, correctChoice)}
+          onClick={() => submit(opt, opt === exercise.answer)}
+        />
+      ))}
     </div>
   );
 }
 
 // ── A / An ─────────────────────────────────────────────────────────────────
 
-function AAnExercise({ exercise, onFirstWrong, onCorrect }: ExerciseProps) {
-  const [wrongChoice, setWrongChoice] = useState<string | null>(null);
-  const [correctChoice, setCorrectChoice] = useState<string | null>(null);
-  const [resetting, setResetting] = useState(false);
-  const [firstTry, setFirstTry] = useState(true);
+function AAnExercise({ exercise, onFirstWrong, onCorrect, onConfetti, onFlash }: ExerciseProps) {
+  const { wrongChoice, correctChoice, submit } = useAnswerFeedback({ onFirstWrong, onCorrect, onConfetti, onFlash });
   const word = exercise.question.replace('___ ', '');
-
-  function handleChoice(opt: string) {
-    if (resetting || correctChoice) return;
-    if (opt === exercise.answer) {
-      playTone(true);
-      setCorrectChoice(opt);
-      setTimeout(onCorrect, 700);
-    } else {
-      if (firstTry) { onFirstWrong(); setFirstTry(false); }
-      playTone(false);
-      setWrongChoice(opt);
-      setResetting(true);
-      setTimeout(() => { setWrongChoice(null); setResetting(false); }, 800);
-    }
-  }
 
   return (
     <div>
       <div style={{
         textAlign: 'center', fontSize: '1.4rem', fontWeight: 700,
-        marginBottom: '24px', color: correctChoice ? 'var(--color-success)' : 'var(--color-accent)',
+        marginBottom: '24px', color: correctChoice ? 'var(--success)' : 'var(--secondary)',
         transition: 'color 0.2s',
       }}>
         {correctChoice ? `${correctChoice} ${word}` : `___ ${word}`}
       </div>
-      <div style={{ display: 'flex', gap: '16px' }}>
-        {['a', 'an'].map((opt) => {
-          const isWrong = opt === wrongChoice;
-          const isCorrect = opt === correctChoice;
-          return (
-            <button key={opt} onClick={() => handleChoice(opt)} style={{
-              flex: 1, padding: '20px', borderRadius: '16px',
-              border: `2px solid ${isCorrect ? 'var(--color-success)' : isWrong ? 'var(--color-danger)' : 'rgba(255,255,255,0.2)'}`,
-              background: isCorrect ? 'rgba(16,185,129,0.25)' : isWrong ? 'rgba(239,68,68,0.25)' : 'var(--color-surface-1)',
-              color: '#fff', fontSize: '1.5rem', fontWeight: 700,
-              cursor: resetting || correctChoice ? 'default' : 'pointer', transition: 'all 0.2s',
-            }}>
-              {opt}
-            </button>
-          );
-        })}
+      <div className="options-grid">
+        {['a', 'an'].map((opt) => (
+          <OptionButton
+            key={opt}
+            text={opt}
+            isHebrew={false}
+            state={optionState(opt, wrongChoice, correctChoice)}
+            onClick={() => submit(opt, opt === exercise.answer)}
+          />
+        ))}
       </div>
     </div>
   );
@@ -291,54 +181,40 @@ function AAnExercise({ exercise, onFirstWrong, onCorrect }: ExerciseProps) {
 
 // ── Word order ─────────────────────────────────────────────────────────────
 
-function WordOrderExercise({ exercise, onFirstWrong, onCorrect }: ExerciseProps) {
+function WordOrderExercise({ exercise, onFirstWrong, onCorrect, onConfetti, onFlash }: ExerciseProps) {
   const [chosen, setChosen] = useState<string[]>([]);
   const [remaining, setRemaining] = useState<string[]>(() => shuffle(exercise.options));
-  const [shake, setShake] = useState(false);
-  const [isCorrect, setIsCorrect] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [firstTry, setFirstTry] = useState(true);
+  const { wrongChoice, correctChoice, resetting, submit } = useAnswerFeedback({ onFirstWrong, onCorrect, onConfetti, onFlash });
+  const isWrong = !!wrongChoice;
 
   function addWord(word: string, idx: number) {
-    if (resetting) return;
+    if (resetting || correctChoice) return;
     setChosen((prev) => [...prev, word]);
     setRemaining((prev) => { const next = [...prev]; next.splice(idx, 1); return next; });
   }
 
   function removeWord(word: string, idx: number) {
-    if (resetting) return;
+    if (resetting || correctChoice) return;
     setRemaining((prev) => [...prev, word]);
     setChosen((prev) => { const next = [...prev]; next.splice(idx, 1); return next; });
   }
 
   function handleCheck() {
-    if (resetting || chosen.length === 0) return;
+    if (resetting || correctChoice || chosen.length === 0) return;
     const attempt = chosen.join(' ');
-    if (attempt === exercise.answer) {
-      playTone(true);
-      setIsCorrect(true);
-      setTimeout(onCorrect, 700);
-    } else {
-      if (firstTry) { onFirstWrong(); setFirstTry(false); }
-      playTone(false);
-      setShake(true);
-      setResetting(true);
-      setTimeout(() => {
-        setChosen([]);
-        setRemaining(shuffle(exercise.options));
-        setShake(false);
-        setResetting(false);
-      }, 800);
-    }
+    submit(attempt, attempt === exercise.answer, () => {
+      setChosen([]);
+      setRemaining(shuffle(exercise.options));
+    });
   }
 
   return (
     <div>
       {/* Answer area */}
-      <div style={{
+      <div className={isWrong ? 'shake' : ''} style={{
         minHeight: '56px', borderRadius: '14px', padding: '12px 14px',
-        border: `2px solid ${shake ? 'var(--color-danger)' : 'rgba(255,255,255,0.2)'}`,
-        background: shake ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)',
+        border: `2px solid ${isWrong ? 'var(--danger)' : 'rgba(255,255,255,0.2)'}`,
+        background: isWrong ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)',
         display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px',
         transition: 'border 0.2s, background 0.2s',
       }}>
@@ -347,7 +223,7 @@ function WordOrderExercise({ exercise, onFirstWrong, onCorrect }: ExerciseProps)
         )}
         {chosen.map((w, i) => (
           <span key={i} onClick={() => removeWord(w, i)} style={{
-            background: 'var(--color-primary)', borderRadius: '8px', padding: '4px 10px',
+            background: 'var(--primary)', borderRadius: '8px', padding: '4px 10px',
             fontSize: '0.95rem', cursor: resetting ? 'default' : 'pointer',
           }}>
             {w}
@@ -359,7 +235,7 @@ function WordOrderExercise({ exercise, onFirstWrong, onCorrect }: ExerciseProps)
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
         {remaining.map((w, i) => (
           <button key={i} onClick={() => addWord(w, i)} disabled={resetting} style={{
-            background: 'var(--color-surface-1)', border: '1px solid rgba(255,255,255,0.2)',
+            background: 'var(--card)', border: '1px solid rgba(255,255,255,0.2)',
             borderRadius: '10px', padding: '8px 14px', color: '#fff', fontSize: '0.95rem',
             cursor: resetting ? 'default' : 'pointer', opacity: resetting ? 0.5 : 1,
           }}>
@@ -370,7 +246,7 @@ function WordOrderExercise({ exercise, onFirstWrong, onCorrect }: ExerciseProps)
 
       <button onClick={handleCheck} disabled={chosen.length === 0 || resetting} style={{
         width: '100%', padding: '14px', borderRadius: '14px', border: 'none',
-        background: chosen.length === 0 ? 'rgba(255,255,255,0.1)' : 'var(--color-primary)',
+        background: chosen.length === 0 ? 'rgba(255,255,255,0.1)' : 'var(--primary)',
         color: '#fff', fontSize: '1rem', fontWeight: 700,
         cursor: chosen.length === 0 ? 'not-allowed' : 'pointer',
         opacity: chosen.length === 0 || resetting ? 0.5 : 1,
@@ -386,9 +262,10 @@ function WordOrderExercise({ exercise, onFirstWrong, onCorrect }: ExerciseProps)
 interface ExercisesScreenProps {
   onHome: () => void;
   onResults: (score: number, total: number) => void;
+  onConfetti: () => void;
 }
 
-export function ExercisesScreen({ onHome, onResults }: ExercisesScreenProps) {
+export function ExercisesScreen({ onHome, onResults, onConfetti }: ExercisesScreenProps) {
   const { wordStats, currentProfile, updateProfileStats } = useProfileStore();
   const { questionCount } = useGameStore();
   const [exercises] = useState<BookExercise[]>(() =>
@@ -397,8 +274,14 @@ export function ExercisesScreen({ onHome, onResults }: ExercisesScreenProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState(0);
   const [results, setResults] = useState<{ id: string; firstTryCorrect: boolean }[]>([]);
+  const [screenFlash, setScreenFlash] = useState<'correct' | 'wrong' | null>(null);
 
   const current = exercises[currentIdx];
+
+  const handleFlash = useCallback((type: 'correct' | 'wrong') => {
+    setScreenFlash(type);
+    setTimeout(() => setScreenFlash(null), type === 'correct' ? 650 : 500);
+  }, []);
 
   // We need to track per-question whether first try was correct.
   // We pass two callbacks: onFirstWrong (to record it was wrong) and onCorrect.
@@ -441,24 +324,23 @@ export function ExercisesScreen({ onHome, onResults }: ExercisesScreenProps) {
 
   return (
     <div className="screen active" style={{ display: 'flex', flexDirection: 'column' }}>
+      {screenFlash && <div className={`screen-flash ${screenFlash}`} />}
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-        <button onClick={onHome} style={{
-          background: 'none', border: 'none', color: 'var(--text-dim)',
-          fontSize: '1.4rem', cursor: 'pointer', padding: '4px 8px',
-        }}>←</button>
+        <button className="back-btn" onClick={onHome}>← Home</button>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
             <span style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>
               {currentIdx + 1} / {exercises.length}
             </span>
-            <span style={{ color: 'var(--color-accent)', fontSize: '0.85rem' }}>
+            <span style={{ color: 'var(--secondary)', fontSize: '0.85rem' }}>
               ⭐ {score}
             </span>
           </div>
           <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}>
             <div style={{
-              height: '100%', background: 'var(--color-primary)',
+              height: '100%', background: 'var(--primary)',
               borderRadius: '4px', width: `${progress}%`, transition: 'width 0.3s',
             }} />
           </div>
@@ -469,7 +351,7 @@ export function ExercisesScreen({ onHome, onResults }: ExercisesScreenProps) {
       <div style={{ marginBottom: '12px' }}>
         <span style={{
           background: 'rgba(108,63,197,0.3)', borderRadius: '20px',
-          padding: '4px 12px', fontSize: '0.78rem', color: 'var(--color-primary)',
+          padding: '4px 12px', fontSize: '0.78rem', color: 'var(--primary)',
           border: '1px solid rgba(108,63,197,0.4)',
         }}>
           📚 {current.topic}
@@ -495,7 +377,7 @@ export function ExercisesScreen({ onHome, onResults }: ExercisesScreenProps) {
           padding: '14px', marginBottom: '14px', fontSize: '0.88rem',
           lineHeight: 1.7, color: 'rgba(255,255,255,0.85)',
           maxHeight: '160px', overflowY: 'auto',
-          borderLeft: '3px solid var(--color-primary)',
+          borderLeft: '3px solid var(--primary)',
         }}>
           {current.passage}
         </div>
@@ -514,27 +396,27 @@ export function ExercisesScreen({ onHome, onResults }: ExercisesScreenProps) {
       <div style={{ flex: 1 }}>
         {current.type === 'multiple-choice' && (
           <MultipleChoiceExercise key={current.id} exercise={current}
-            onFirstWrong={handleFirstWrongCurrent} onCorrect={handleCorrectCurrent} />
+            onFirstWrong={handleFirstWrongCurrent} onCorrect={handleCorrectCurrent} onConfetti={onConfetti} onFlash={handleFlash} />
         )}
         {current.type === 'true-false' && (
           <TrueFalseExercise key={current.id} exercise={current}
-            onFirstWrong={handleFirstWrongCurrent} onCorrect={handleCorrectCurrent} />
+            onFirstWrong={handleFirstWrongCurrent} onCorrect={handleCorrectCurrent} onConfetti={onConfetti} onFlash={handleFlash} />
         )}
         {current.type === 'fill-blank' && (
           <FillBlankExercise key={current.id} exercise={current}
-            onFirstWrong={handleFirstWrongCurrent} onCorrect={handleCorrectCurrent} />
+            onFirstWrong={handleFirstWrongCurrent} onCorrect={handleCorrectCurrent} onConfetti={onConfetti} onFlash={handleFlash} />
         )}
         {current.type === 'odd-one-out' && (
           <OddOneOutExercise key={current.id} exercise={current}
-            onFirstWrong={handleFirstWrongCurrent} onCorrect={handleCorrectCurrent} />
+            onFirstWrong={handleFirstWrongCurrent} onCorrect={handleCorrectCurrent} onConfetti={onConfetti} onFlash={handleFlash} />
         )}
         {current.type === 'a-an' && (
           <AAnExercise key={current.id} exercise={current}
-            onFirstWrong={handleFirstWrongCurrent} onCorrect={handleCorrectCurrent} />
+            onFirstWrong={handleFirstWrongCurrent} onCorrect={handleCorrectCurrent} onConfetti={onConfetti} onFlash={handleFlash} />
         )}
         {current.type === 'word-order' && (
           <WordOrderExercise key={current.id} exercise={current}
-            onFirstWrong={handleFirstWrongCurrent} onCorrect={handleCorrectCurrent} />
+            onFirstWrong={handleFirstWrongCurrent} onCorrect={handleCorrectCurrent} onConfetti={onConfetti} onFlash={handleFlash} />
         )}
       </div>
     </div>

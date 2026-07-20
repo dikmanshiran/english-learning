@@ -25,7 +25,7 @@ function kindMap(k: string): 'E2H' | 'H2E' | 'SENTENCE' | 'LISTEN' | 'LETTER_CHO
     case 'sentence': return 'SENTENCE';
     case 'listen': return 'LISTEN';
     case 'letter-choice': return 'LETTER_CHOICE';
-    case 'letter-type': return 'LETTER_TYPE';
+    case 'letter-listen': return 'LISTEN';
     default: return 'E2H';
   }
 }

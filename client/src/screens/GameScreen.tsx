@@ -43,10 +43,10 @@ export function GameScreen({ onHome, onResults, onConfetti }: GameScreenProps) {
   const [feedback, setFeedback] = useState<{ text: string; type: 'correct' | 'wrong' } | null>(null);
   const [optionStates, setOptionStates] = useState<Record<string, 'default' | 'correct' | 'wrong' | 'disabled'>>({});
   const [showNext, setShowNext] = useState(false);
-  const [typedValue, setTypedValue] = useState('');
   const [screenFlash, setScreenFlash] = useState<'correct' | 'wrong' | null>(null);
 
   const q = questions[currentQ];
+  const isListenKind = q?.kind === 'listen' || q?.kind === 'letter-listen';
 
   // Reset per question
   useEffect(() => {
@@ -56,19 +56,18 @@ export function GameScreen({ onHome, onResults, onConfetti }: GameScreenProps) {
     setShowNext(false);
     setShake(false);
     setPlaying(false);
-    setTypedValue('');
     setScreenFlash(null);
-    if (q.kind === 'listen') {
+    if (isListenKind) {
       const timer = setTimeout(() => triggerSpeak(), 400);
       return () => clearTimeout(timer);
     }
   }, [currentQ, q?.question]);
 
   const triggerSpeak = useCallback(() => {
-    if (!q || q.kind !== 'listen') return;
+    if (!q || !isListenKind) return;
     setPlaying(true);
     speak(q.question, () => setPlaying(false));
-  }, [q]);
+  }, [q, isListenKind]);
 
   function handleAnswer(chosen: string) {
     if (answered || resetting) return;
@@ -127,7 +126,6 @@ export function GameScreen({ onHome, onResults, onConfetti }: GameScreenProps) {
         });
         setFeedback(null);
         setScreenFlash(null);
-        setTypedValue('');
         markResetting(false);
       }, 800);
 
@@ -143,11 +141,6 @@ export function GameScreen({ onHome, onResults, onConfetti }: GameScreenProps) {
         setShowNext(true);
       }
     }
-  }
-
-  function handleTypedSubmit() {
-    if (answered || resetting || !typedValue.trim()) return;
-    handleAnswer(typedValue.trim().toUpperCase());
   }
 
   function handleNext() {
@@ -190,39 +183,17 @@ export function GameScreen({ onHome, onResults, onConfetti }: GameScreenProps) {
 
       <QuestionCard question={q} shake={shake} playing={playing} onPlay={triggerSpeak} />
 
-      {q.kind === 'letter-type' ? (
-        <div className="letter-answer-row">
-          <input
-            className="letter-input"
-            type="text"
-            maxLength={1}
-            value={typedValue}
-            onChange={(e) => setTypedValue(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleTypedSubmit()}
-            disabled={answered || resetting}
-            autoFocus
+      <div className="options-grid">
+        {q.options.map((opt) => (
+          <OptionButton
+            key={opt}
+            text={opt}
+            isHebrew={isHebrewOptions}
+            state={optionStates[opt] || 'default'}
+            onClick={() => handleAnswer(opt)}
           />
-          <button
-            className="form-btn primary"
-            onClick={handleTypedSubmit}
-            disabled={answered || resetting || !typedValue.trim()}
-          >
-            Check ✓
-          </button>
-        </div>
-      ) : (
-        <div className="options-grid">
-          {q.options.map((opt) => (
-            <OptionButton
-              key={opt}
-              text={opt}
-              isHebrew={isHebrewOptions}
-              state={optionStates[opt] || 'default'}
-              onClick={() => handleAnswer(opt)}
-            />
-          ))}
-        </div>
-      )}
+        ))}
+      </div>
 
       {feedback && (
         <div className={`feedback show ${feedback.type}`}>{feedback.text}</div>

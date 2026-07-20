@@ -3,6 +3,7 @@ import { Confetti } from './components/Confetti';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { NewUserScreen } from './screens/NewUserScreen';
 import { HomeScreen } from './screens/HomeScreen';
+import { BeginnerLearnScreen } from './screens/BeginnerLearnScreen';
 import { GameScreen } from './screens/GameScreen';
 import { ResultsScreen } from './screens/ResultsScreen';
 import { LoginScreen } from './screens/LoginScreen';
@@ -14,12 +15,14 @@ import { useProfileStore } from './store/profileStore';
 import { useAuthStore } from './store/authStore';
 import { useBuildQuestions } from './hooks/useGame';
 import { useQuestionPool } from './hooks/useQuestionPool';
-import { useBuildLetterQuestions, useBuildFirstWordsQuestions } from './hooks/useBeginnerGame';
+import { useBuildLetterQuestions, useBuildFirstWordsQuestions, useBuildBeginnerBatch } from './hooks/useBeginnerGame';
 import { refreshToken, logout } from './services/authService';
 import { saveSession } from './services/sessionService';
 import { LETTERS_UNIT_ID, FIRST_WORDS_UNIT_ID } from './types/game';
 
-type Screen = 'landing' | 'login' | 'register' | 'profile' | 'newUser' | 'home' | 'game' | 'results' | 'dashboard' | 'exercises' | 'exercises-results';
+const FIRST_WORDS_BATCH_SIZE = 10;
+
+type Screen = 'landing' | 'login' | 'register' | 'profile' | 'newUser' | 'home' | 'beginner-learn' | 'game' | 'results' | 'dashboard' | 'exercises' | 'exercises-results';
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('landing');
@@ -28,11 +31,12 @@ export default function App() {
   const [exercisesResult, setExercisesResult] = useState<{ score: number; total: number } | null>(null);
   const { isLoggedIn, clearAuth } = useAuthStore();
 
-  const { selectedUnits, questionCount, setQuestions, resetGame } = useGameStore();
+  const { selectedUnits, questionCount, beginnerWords, setQuestions, setBeginnerWords, resetGame } = useGameStore();
   const { selectProfile, updateProfileStats, currentProfile, loadServerProfiles, loadLocalProfiles, loadWordStats, clearProfiles, isServerBacked, wordStats } = useProfileStore();
   const buildQuestions = useBuildQuestions();
   const buildLetterQuestions = useBuildLetterQuestions();
   const buildFirstWordsQuestions = useBuildFirstWordsQuestions();
+  const buildBeginnerBatch = useBuildBeginnerBatch();
   const pool = useQuestionPool(selectedUnits, currentProfile?.level ?? 'INTERMEDIATE');
 
   const fireConfetti = useCallback(() => setConfettiTrigger((n) => n + 1), []);
@@ -96,16 +100,30 @@ export default function App() {
     // the same tick, before this component re-renders with the new value.
     const liveSelectedUnits = useGameStore.getState().selectedUnits;
     const folder = liveSelectedUnits[0];
+
+    if (folder === FIRST_WORDS_UNIT_ID) {
+      const batch = buildBeginnerBatch(FIRST_WORDS_BATCH_SIZE, wordStats);
+      setBeginnerWords(batch);
+      navigate('beginner-learn');
+      return;
+    }
+
     const qs =
       folder === LETTERS_UNIT_ID
         ? buildLetterQuestions(questionCount, wordStats)
-        : folder === FIRST_WORDS_UNIT_ID
-        ? buildFirstWordsQuestions(questionCount, wordStats)
         : buildQuestions(pool, questionCount, liveSelectedUnits, wordStats);
     if (qs.length === 0) {
       alert('אין שאלות ליחידות שנבחרו. בחר יחידות נוספות!');
       return;
     }
+    resetGame();
+    setQuestions(qs);
+    navigate('game');
+  }
+
+  function handleStartFirstWordsQuiz() {
+    const batch = useGameStore.getState().beginnerWords;
+    const qs = buildFirstWordsQuestions(batch, wordStats);
     resetGame();
     setQuestions(qs);
     navigate('game');
@@ -234,6 +252,14 @@ export default function App() {
           onStartVocab={handleStart}
           onStartExercises={() => navigate('exercises')}
           onSwitchPlayer={() => navigate('profile')}
+        />
+      )}
+
+      {screen === 'beginner-learn' && (
+        <BeginnerLearnScreen
+          words={beginnerWords}
+          onComplete={handleStartFirstWordsQuiz}
+          onHome={() => navigate('home')}
         />
       )}
 

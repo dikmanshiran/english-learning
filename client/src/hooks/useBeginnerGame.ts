@@ -10,11 +10,11 @@ import { shuffle, weightedSample } from '../utils/weightedSample';
 // recorded — varies by question variant; that's the same approximation the
 // regular vocab builder in useGame.ts already makes for e2h vs h2e.
 
-// ── Letters folder: recognition ("read") + typing ("write") ────────────────
+// ── Letters folder: case-flip + listen-and-choose-the-letter ───────────────
 
-type LetterVariant = 'upper2lower' | 'lower2upper' | 'word2letter';
+type CaseVariant = 'upper' | 'lower';
 
-function makeLetterChoiceQuestion(item: LetterItem, variant: LetterVariant): Question {
+function makeLetterCaseFlipQuestion(item: LetterItem, variant: 'upper2lower' | 'lower2upper'): Question {
   if (variant === 'upper2lower') {
     const wrong = shuffle(LETTERS.filter((l) => l.letter !== item.letter)).slice(0, 3).map((l) => l.lower);
     return {
@@ -25,77 +25,81 @@ function makeLetterChoiceQuestion(item: LetterItem, variant: LetterVariant): Que
       hintText: 'Which lowercase letter matches?',
     };
   }
-  if (variant === 'lower2upper') {
-    const wrong = shuffle(LETTERS.filter((l) => l.letter !== item.letter)).slice(0, 3).map((l) => l.letter);
-    return {
-      kind: 'letter-choice',
-      question: item.lower,
-      answer: item.letter,
-      options: shuffle([item.letter, ...wrong]),
-      hintText: 'Which UPPERCASE letter matches?',
-    };
-  }
-  // word2letter
   const wrong = shuffle(LETTERS.filter((l) => l.letter !== item.letter)).slice(0, 3).map((l) => l.letter);
   return {
     kind: 'letter-choice',
-    question: `${item.emoji} ${item.word}`,
+    question: item.lower,
     answer: item.letter,
     options: shuffle([item.letter, ...wrong]),
-    hintText: 'Which letter does this start with?',
+    hintText: 'Which UPPERCASE letter matches?',
   };
 }
 
-function makeLetterTypeQuestion(item: LetterItem): Question {
+function makeLetterListenQuestion(item: LetterItem, caseVariant: CaseVariant): Question {
+  const pick = (l: LetterItem) => (caseVariant === 'upper' ? l.letter : l.lower);
+  const wrong = shuffle(LETTERS.filter((l) => l.letter !== item.letter)).slice(0, 3).map(pick);
   return {
-    kind: 'letter-type',
-    question: `${item.emoji} ${item.word}`,
-    answer: item.letter,
-    options: [],
-    hintText: 'Type the first letter (UPPERCASE)',
+    kind: 'letter-listen',
+    question: item.word,
+    answer: pick(item),
+    options: shuffle([pick(item), ...wrong]),
+    hintText: 'Which letter does this word start with?',
   };
 }
 
 export function useBuildLetterQuestions() {
   return useCallback((count: number, wordStats: Record<string, WordStat> = {}): Question[] => {
     const qs: Question[] = [];
-    const nType = Math.max(1, Math.round(count * 0.5));
-    const nChoice = count - nType;
-    const variants: LetterVariant[] = ['upper2lower', 'lower2upper', 'word2letter'];
+    const nListen = Math.max(1, Math.round(count * 0.5));
+    const nCaseFlip = count - nListen;
+    const caseFlipVariants: Array<'upper2lower' | 'lower2upper'> = ['upper2lower', 'lower2upper'];
     const getKey = (l: LetterItem) => l.letter;
 
-    weightedSample(LETTERS, nType, getKey, wordStats).forEach((item) => qs.push(makeLetterTypeQuestion(item)));
-    weightedSample(LETTERS, nChoice, getKey, wordStats).forEach((item, i) =>
-      qs.push(makeLetterChoiceQuestion(item, variants[i % variants.length]))
+    weightedSample(LETTERS, nListen, getKey, wordStats).forEach((item) =>
+      qs.push(makeLetterListenQuestion(item, Math.random() < 0.5 ? 'upper' : 'lower'))
+    );
+    weightedSample(LETTERS, nCaseFlip, getKey, wordStats).forEach((item, i) =>
+      qs.push(makeLetterCaseFlipQuestion(item, caseFlipVariants[i % caseFlipVariants.length]))
     );
 
     return shuffle(qs).slice(0, count);
   }, []);
 }
 
-// ── First Words folder: simple e2h/h2e only, beginner pool only ───────────
+// ── First Words folder: teach a batch, then quiz on it ─────────────────────
 
 const BEGINNER_VOCAB = VOCAB.filter((v) => v.u === FIRST_WORDS_UNIT_ID);
 
-function makeBeginnerVocabQ(item: VocabItem, type: 'e2h' | 'h2e'): Question {
-  if (type === 'e2h') {
+export function useBuildBeginnerBatch() {
+  return useCallback((count: number, wordStats: Record<string, WordStat> = {}): VocabItem[] => {
+    return weightedSample(BEGINNER_VOCAB, count, (v) => v.e, wordStats);
+  }, []);
+}
+
+function makeBeginnerVocabQ(item: VocabItem, kind: 'e2h' | 'h2e' | 'listen'): Question {
+  if (kind === 'e2h') {
     const wrong = shuffle(BEGINNER_VOCAB.filter((v) => v.h !== item.h)).slice(0, 3).map((v) => v.h);
     return { kind: 'e2h', question: item.e, answer: item.h, options: shuffle([item.h, ...wrong]), hintText: '' };
   }
-  const wrong = shuffle(BEGINNER_VOCAB.filter((v) => v.e !== item.e)).slice(0, 3).map((v) => v.e);
-  return { kind: 'h2e', question: item.h, answer: item.e, options: shuffle([item.e, ...wrong]), hintText: '' };
+  if (kind === 'h2e') {
+    const wrong = shuffle(BEGINNER_VOCAB.filter((v) => v.e !== item.e)).slice(0, 3).map((v) => v.e);
+    return { kind: 'h2e', question: item.h, answer: item.e, options: shuffle([item.e, ...wrong]), hintText: '' };
+  }
+  const wrong = shuffle(BEGINNER_VOCAB.filter((v) => v.h !== item.h)).slice(0, 3).map((v) => v.h);
+  return { kind: 'listen', question: item.e, answer: item.h, options: shuffle([item.h, ...wrong]), hintText: '' };
 }
 
 export function useBuildFirstWordsQuestions() {
-  return useCallback((count: number, wordStats: Record<string, WordStat> = {}): Question[] => {
-    const qs: Question[] = [];
-    const nE2H = Math.round(count * 0.5);
-    const nH2E = count - nE2H;
-    const getKey = (v: VocabItem) => v.e;
+  return useCallback((batch: VocabItem[], wordStats: Record<string, WordStat> = {}): Question[] => {
+    type Pair = { item: VocabItem; kind: 'e2h' | 'h2e' | 'listen' };
+    const candidates: Pair[] = [];
+    batch.forEach((item) => {
+      candidates.push({ item, kind: 'e2h' });
+      candidates.push({ item, kind: 'h2e' });
+      candidates.push({ item, kind: 'listen' });
+    });
 
-    weightedSample(BEGINNER_VOCAB, nE2H, getKey, wordStats).forEach((item) => qs.push(makeBeginnerVocabQ(item, 'e2h')));
-    weightedSample(BEGINNER_VOCAB, nH2E, getKey, wordStats).forEach((item) => qs.push(makeBeginnerVocabQ(item, 'h2e')));
-
-    return shuffle(qs).slice(0, count);
+    const picked = weightedSample(candidates, batch.length, (p) => p.item.e, wordStats);
+    return shuffle(picked.map((p) => makeBeginnerVocabQ(p.item, p.kind)));
   }, []);
 }

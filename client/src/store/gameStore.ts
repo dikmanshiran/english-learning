@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Question, WrongAnswer, QuestionLogEntry } from '../types/game';
+import { Question, VocabItem, WrongAnswer, QuestionLogEntry } from '../types/game';
 
 interface GameState {
   questions: Question[];
@@ -13,10 +13,12 @@ interface GameState {
   questionLog: QuestionLogEntry[];
   selectedUnits: Array<number | 'all'>;
   questionCount: number;
+  beginnerWords: VocabItem[];
 
   setQuestions: (questions: Question[]) => void;
   setSelectedUnits: (units: Array<number | 'all'>) => void;
   setQuestionCount: (n: number) => void;
+  setBeginnerWords: (words: VocabItem[]) => void;
   resetGame: () => void;
   markAnswered: () => void;
   markResetting: (v: boolean) => void;
@@ -42,10 +44,12 @@ export const useGameStore = create<GameState>((set) => ({
   questionLog: [],
   selectedUnits: ['all'],
   questionCount: 10,
+  beginnerWords: [],
 
   setQuestions: (questions) => set({ questions }),
   setSelectedUnits: (selectedUnits) => set({ selectedUnits }),
   setQuestionCount: (questionCount) => set({ questionCount }),
+  setBeginnerWords: (beginnerWords) => set({ beginnerWords }),
 
   resetGame: () =>
     set({ currentQ: 0, score: 0, lives: 3, streak: 0, answered: false, resetting: false, wrongAnswers: [], questionLog: [] }),

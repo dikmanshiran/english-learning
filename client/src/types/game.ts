@@ -1,4 +1,4 @@
-export type QuestionKind = 'e2h' | 'h2e' | 'sentence' | 'listen' | 'letter-choice' | 'letter-type';
+export type QuestionKind = 'e2h' | 'h2e' | 'sentence' | 'listen' | 'letter-choice' | 'letter-listen';
 export type MasteryLevel = 'UNSEEN' | 'STRUGGLING' | 'LEARNING' | 'MASTERED';
 export type Level = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
 

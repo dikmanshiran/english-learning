@@ -11,16 +11,16 @@ interface QuestionCardProps {
 export function QuestionCard({ question: q, shake, playing, onPlay }: QuestionCardProps) {
   const badge =
     q.kind === 'e2h'
-      ? '🇬🇧 → 🇮🇱 Translate to Hebrew'
+      ? '🇬🇧 → 🇮🇱 Translate to Hebrew · תרגם לעברית'
       : q.kind === 'h2e'
-      ? '🇮🇱 → 🇬🇧 Translate to English'
+      ? '🇮🇱 → 🇬🇧 Translate to English · תרגם לאנגלית'
       : q.kind === 'listen'
-      ? '🎧 Listen & Choose Hebrew'
+      ? '🎧 Listen & Choose Hebrew · הקשב ובחר בעברית'
       : q.kind === 'letter-choice'
-      ? '🔤 Recognize the Letter'
+      ? '🔤 Recognize the Letter · זהה את האות'
       : q.kind === 'letter-listen'
-      ? '🎧 Listen & Choose the Letter'
-      : '✏️ Complete the Sentence';
+      ? '🎧 Listen & Choose the Letter · הקשב ובחר את האות'
+      : '✏️ Complete the Sentence · השלם את המשפט';
 
   return (
     <div className={`question-card${shake ? ' shake' : ''}`}>
@@ -37,7 +37,7 @@ export function QuestionCard({ question: q, shake, playing, onPlay }: QuestionCa
               ),
             }}
           />
-          <div className="q-hint">Pick the correct word</div>
+          <div className="q-hint">Pick the correct word · בחר את המילה הנכונה</div>
         </>
       ) : q.kind === 'listen' ? (
         <div className="q-word">
@@ -45,7 +45,11 @@ export function QuestionCard({ question: q, shake, playing, onPlay }: QuestionCa
         </div>
       ) : q.kind === 'letter-listen' ? (
         <div className="q-word">
-          <ListenButton playing={playing} onPlay={onPlay} hint="Listen carefully, then choose the matching letter" />
+          <ListenButton
+            playing={playing}
+            onPlay={onPlay}
+            hint="Listen carefully, then choose the matching letter · הקשב היטב ובחר את האות המתאימה"
+          />
         </div>
       ) : q.kind === 'letter-choice' ? (
         <>
@@ -58,7 +62,7 @@ export function QuestionCard({ question: q, shake, playing, onPlay }: QuestionCa
         <>
           <div className={`q-word${q.kind === 'h2e' ? ' hebrew' : ''}`}>{q.question}</div>
           <div className="q-hint">
-            {q.hintText === 'phrase' ? '💬 Conversational phrase' : ''}
+            {q.hintText === 'phrase' ? '💬 Conversational phrase · ביטוי שיחה' : ''}
           </div>
         </>
       )}

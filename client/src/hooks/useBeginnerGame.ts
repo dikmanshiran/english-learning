@@ -22,7 +22,7 @@ function makeLetterCaseFlipQuestion(item: LetterItem, variant: 'upper2lower' | '
       question: item.letter,
       answer: item.lower,
       options: shuffle([item.lower, ...wrong]),
-      hintText: 'Which lowercase letter matches?',
+      hintText: 'Which lowercase letter matches? · איזו אות קטנה מתאימה?',
     };
   }
   const wrong = shuffle(LETTERS.filter((l) => l.letter !== item.letter)).slice(0, 3).map((l) => l.letter);
@@ -31,7 +31,7 @@ function makeLetterCaseFlipQuestion(item: LetterItem, variant: 'upper2lower' | '
     question: item.lower,
     answer: item.letter,
     options: shuffle([item.letter, ...wrong]),
-    hintText: 'Which UPPERCASE letter matches?',
+    hintText: 'Which UPPERCASE letter matches? · איזו אות גדולה מתאימה?',
   };
 }
 
@@ -43,7 +43,7 @@ function makeLetterListenQuestion(item: LetterItem, caseVariant: CaseVariant): Q
     question: item.word,
     answer: pick(item),
     options: shuffle([pick(item), ...wrong]),
-    hintText: 'Which letter does this word start with?',
+    hintText: 'Which letter does this word start with? · באיזו אות מתחילה המילה?',
   };
 }
 

@@ -55,11 +55,11 @@ export function BeginnerLearnScreen({ words, onComplete, onHome }: BeginnerLearn
       </div>
 
       <div className="question-card">
-        <div className="q-type-badge">📖 Learn a New Word</div>
+        <div className="q-type-badge">📖 Learn a New Word · למד מילה חדשה</div>
         <div className="q-word">{word.e}</div>
         <div className="q-word hebrew" lang="he">{word.h}</div>
         <button className={`listen-btn${playing ? ' playing' : ''}`} onClick={triggerSpeak} style={{ marginTop: '14px' }}>
-          🔊 Hear it in English
+          🔊 Hear it in English · שמע באנגלית
         </button>
       </div>
 

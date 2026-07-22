@@ -103,6 +103,7 @@ export const UNITS: Unit[] = [
   { id: 3, name: 'Animals', icon: '🐘', level: 'INTERMEDIATE' },
   { id: 4, name: 'Be Careful!', icon: '⚠️', level: 'INTERMEDIATE' },
   { id: 5, name: 'Work Together', icon: '🤝', level: 'INTERMEDIATE' },
+  { id: 6, name: 'From the Books', icon: '📚', level: 'INTERMEDIATE' },
   { id: LETTERS_UNIT_ID, name: 'Letters', icon: '🔤', level: 'BEGINNER' },
   { id: FIRST_WORDS_UNIT_ID, name: 'First Words', icon: '⭐', level: 'BEGINNER' },
 ];
